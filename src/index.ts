@@ -1,3 +1,3 @@
-import { playSinglePhase } from './game/single-phase.js';
+import { playFullGame } from './game/full-game.js';
 
-playSinglePhase().catch(console.error);
+playFullGame().catch(console.error);
