@@ -23,7 +23,11 @@ import {
 import { runShopPhase } from '../ui/shop-prompts.js';
 import { computeRiskExposure } from '../engine/risk.js';
 import { validateDeployment } from '../engine/deploy.js';
-import type { Event, Phase, School, Joker, Tarot } from '../schemas/index.js';
+import {
+  applySchoolFreeComponents,
+  applyVibeCodingStartBonuses,
+} from '../engine/joker-specials.js';
+import type { Event, Phase, School, Joker, Tarot, BossRule } from '../schemas/index.js';
 import type { Panel } from '../engine/scoring.js';
 import type { GameState } from '../engine/state.js';
 
@@ -175,6 +179,10 @@ export async function playFullGame(): Promise<void> {
   // 3. Create game state
   const state = createGameState(scenario, school);
 
+  // 3b. Apply school start bonuses
+  applySchoolFreeComponents(state, data.components);
+  applyVibeCodingStartBonuses(state, data.jokers, data.tarots);
+
   // 4. Draft phase
   const draftRounds = school.modifiers.draft_rounds;
   const draftOptions = school.modifiers.draft_options ?? 3;
@@ -219,6 +227,16 @@ export async function playFullGame(): Promise<void> {
       }
     }
 
+    // Look up boss rule (if this is a boss phase with a boss_rule reference)
+    const bossRuleId = phase.boss_rule;
+    const bossRule = bossRuleId
+      ? data.bossRules.find(br => br.id === bossRuleId || br.id === `boss_${bossRuleId}`)
+      : undefined;
+
+    if (bossRule) {
+      console.log(`\n  Boss Rule: ${bossRule.name} - ${bossRule.effect}`);
+    }
+
     // Deploy
     const effectiveBudget = phase.capacity_budget + school.modifiers.capacity_budget_offset;
     renderComponentPool(state.componentPool);
@@ -228,18 +246,23 @@ export async function playFullGame(): Promise<void> {
     const deployValidation = validateDeployment(deployed, effectiveBudget, school.modifiers);
     renderDeployment(deployed, deployValidation.totalCost, effectiveBudget);
 
-    // Risk report
-    const riskReport = computeRiskExposure(deployed);
-    const deployedTags = [...new Set(deployed.flatMap(c => c.tags))];
-    const triggeredPatternNames = data.patterns
-      .filter(p => {
-        const hasAll = p.requires_all_tags.every((t: string) => deployedTags.includes(t));
-        if (!hasAll) return false;
-        if (p.requires_any_tags.length === 0) return true;
-        return p.requires_any_tags.some((t: string) => deployedTags.includes(t));
-      })
-      .map(p => p.name);
-    renderRiskReport(riskReport, triggeredPatternNames, []);
+    // Risk report (hidden during blind_review boss rule)
+    const hideRiskReport = bossRule?.modifier && (bossRule.modifier as Record<string, unknown>).hide_risk_report === true;
+    if (!hideRiskReport) {
+      const riskReport = computeRiskExposure(deployed);
+      const deployedTags = [...new Set(deployed.flatMap(c => c.tags))];
+      const triggeredPatternNames = data.patterns
+        .filter(p => {
+          const hasAll = p.requires_all_tags.every((t: string) => deployedTags.includes(t));
+          if (!hasAll) return false;
+          if (p.requires_any_tags.length === 0) return true;
+          return p.requires_any_tags.some((t: string) => deployedTags.includes(t));
+        })
+        .map(p => p.name);
+      renderRiskReport(riskReport, triggeredPatternNames, []);
+    } else {
+      console.log('\n  Risk report hidden by boss rule: Blind Review\n');
+    }
 
     // Events: Boss gets 2, others get 1
     const eventCount = phase.blind === 'boss' ? 2 : 1;
@@ -269,6 +292,7 @@ export async function playFullGame(): Promise<void> {
       patterns: data.patterns,
       superPatterns: data.superPatterns,
       events,
+      bossRule,
     });
 
     console.log('\n' + formatSettlement(settlement));
@@ -294,6 +318,7 @@ export async function playFullGame(): Promise<void> {
             patterns: data.patterns,
             superPatterns: data.superPatterns,
             events,
+            bossRule,
           });
 
           console.log('\n--- After Repair ---');

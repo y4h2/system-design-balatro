@@ -85,6 +85,9 @@ export function formatSettlement(settlement: PhaseSettlement): string {
   lines.push('');
   lines.push('── 约束校验 ──');
   lines.push(`约束扣分: ${settlement.constraintPenalty}`);
+  if (settlement.bossPenalty > 0) {
+    lines.push(`Boss 扣分: ${settlement.bossPenalty}`);
+  }
 
   // 7. 最终面板 (Final Panel)
   lines.push('');
@@ -96,8 +99,9 @@ export function formatSettlement(settlement: PhaseSettlement): string {
   lines.push('── 评分明细 ──');
   lines.push(`Chips: ${settlement.chips.toFixed(1)}`);
   lines.push(`Mult:  ×${settlement.mult.toFixed(2)}`);
+  const totalPenalty = settlement.constraintPenalty + settlement.bossPenalty;
   lines.push(
-    `Final: ${settlement.chips.toFixed(1)} × ${settlement.mult.toFixed(2)} - ${settlement.constraintPenalty} = ${settlement.finalScore}`,
+    `Final: ${settlement.chips.toFixed(1)} × ${settlement.mult.toFixed(2)} - ${totalPenalty} = ${settlement.finalScore}`,
   );
   lines.push(`目标: ${settlement.targetScore}`);
 

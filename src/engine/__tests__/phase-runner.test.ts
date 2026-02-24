@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { runPhase, type PhaseInput, type PhaseSettlement } from '../phase-runner.js';
 import { loadGameData } from '../../data/loader.js';
-import type { Component, Pattern, SuperPattern, Joker, Event, Phase, School } from '../../schemas/index.js';
+import type { Component, Pattern, SuperPattern, Joker, Event, Phase, School, BossRule } from '../../schemas/index.js';
 
 const data = loadGameData();
 
@@ -20,6 +20,9 @@ function joker(id: string): Joker {
 }
 function school(id: string): School {
   return data.schools.find(s => s.id === id)!;
+}
+function bossRule(id: string): BossRule {
+  return data.bossRules.find(br => br.id === id)!;
 }
 
 const DEFAULT_BASELINE = { perf: 2, rel: 2, cx: 2 };
@@ -525,6 +528,291 @@ describe('phase-runner', () => {
       // SLA 99.9 requires rel>=4 or HA component
       // Panel rel = 2 + 1 (api_gw) = 3, no HA tags -> penalty
       expect(result.constraintPenalty).toBeGreaterThan(0);
+    });
+  });
+
+  // ── Boss Rule Integration ───────────────────────────────────────────
+
+  describe('boss rule: budget_halved', () => {
+    it('halves the capacity budget', () => {
+      const deployed = [comp('cmp_cdn'), comp('cmp_cache'), comp('cmp_sql_db')];
+      const startupSchool = school('school_startup');
+      const budgetBoss = bossRule('boss_budget_halved');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+        bossRule: budgetBoss,
+      };
+
+      const result = runPhase(input);
+
+      // Normal budget: 110 + 20 (startup offset) = 130
+      // Halved: floor(130 * 0.5) = 65
+      expect(result.capacityBudget).toBe(65);
+      expect(result.bossEffects?.capacityBudgetFactor).toBe(0.5);
+    });
+  });
+
+  describe('boss rule: cache_disabled', () => {
+    it('doubles capacity cost for components with cache tag', () => {
+      const deployed = [comp('cmp_cache'), comp('cmp_api_gw')];
+      const startupSchool = school('school_startup');
+      const cacheBoss = bossRule('boss_cache_disabled');
+
+      // Run without boss rule to get baseline
+      const baseInput: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+      const baseResult = runPhase(baseInput);
+
+      // Run with boss rule
+      const bossInput: PhaseInput = {
+        ...baseInput,
+        bossRule: cacheBoss,
+      };
+      const bossResult = runPhase(bossInput);
+
+      // Cache component (has "cache" tag) should have doubled cost
+      // API Gateway (no "cache" tag) should be unchanged
+      // Cache cost = 15, doubled = 30; API GW cost = 5
+      // Base: 15 + 5 = 20; Boss: 30 + 5 = 35
+      expect(bossResult.capacityUsed).toBeGreaterThan(baseResult.capacityUsed);
+      expect(bossResult.bossEffects?.capacityMultiplierForTags).toEqual({
+        tags: ['cache'],
+        factor: 2.0,
+      });
+    });
+  });
+
+  describe('boss rule: tech_debt_explosion', () => {
+    it('adds extra risks to risk report', () => {
+      const deployed = [comp('cmp_api_gw')];
+      const startupSchool = school('school_startup');
+      const techDebtBoss = bossRule('boss_tech_debt_explosion');
+
+      // Run without boss rule
+      const baseInput: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+      const baseResult = runPhase(baseInput);
+
+      // Run with boss rule
+      const bossInput: PhaseInput = {
+        ...baseInput,
+        bossRule: techDebtBoss,
+      };
+      const bossResult = runPhase(bossInput);
+
+      // Tech debt adds 1 extra risk per component
+      // API GW exposes "gateway_bottleneck" normally -> now has at least 1 more
+      expect(bossResult.riskReport.allExposed.length).toBeGreaterThan(
+        baseResult.riskReport.allExposed.length,
+      );
+      expect(bossResult.bossEffects?.extraRandomRiskPerComponent).toBe(1);
+    });
+  });
+
+  describe('boss rule: single_point (no duplicate tags)', () => {
+    it('applies penalty when components share tags', () => {
+      // SQL DB has tags: ["db","sql","primary_db"]
+      // Read Replica has tags: ["db","read_replica","primary_db"]
+      // "db" and "primary_db" are shared -> 2 violations -> 10 penalty
+      const deployed = [comp('cmp_sql_db'), comp('cmp_read_replica')];
+      const startupSchool = school('school_startup');
+      const singlePointBoss = bossRule('boss_single_point');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+        bossRule: singlePointBoss,
+      };
+
+      const result = runPhase(input);
+
+      // Should have boss penalty for duplicate tags
+      expect(result.bossPenalty).toBeGreaterThan(0);
+      expect(result.bossEffects?.noDuplicateTags).toBe(true);
+    });
+
+    it('has zero boss penalty when no tags are shared', () => {
+      // CDN has tags: ["cdn","edge"]
+      // API GW has tags: ["gateway"]
+      // No overlapping tags
+      const deployed = [comp('cmp_cdn'), comp('cmp_api_gw')];
+      const startupSchool = school('school_startup');
+      const singlePointBoss = bossRule('boss_single_point');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+        bossRule: singlePointBoss,
+      };
+
+      const result = runPhase(input);
+
+      expect(result.bossPenalty).toBe(0);
+    });
+  });
+
+  describe('boss rule: blind_review', () => {
+    it('returns hideRiskReport in bossEffects', () => {
+      const deployed = [comp('cmp_api_gw')];
+      const startupSchool = school('school_startup');
+      const blindBoss = bossRule('boss_blind_review');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+        bossRule: blindBoss,
+      };
+
+      const result = runPhase(input);
+
+      expect(result.bossEffects?.hideRiskReport).toBe(true);
+      // Score calculation should be unaffected (blind_review is UI only)
+      expect(result.bossPenalty).toBe(0);
+    });
+  });
+
+  describe('no boss rule', () => {
+    it('has zero bossPenalty and no bossEffects when no boss rule', () => {
+      const deployed = [comp('cmp_api_gw')];
+      const startupSchool = school('school_startup');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+
+      const result = runPhase(input);
+
+      expect(result.bossPenalty).toBe(0);
+      expect(result.bossEffects).toBeUndefined();
+    });
+  });
+
+  // ── Joker Special Condition Integration ─────────────────────────────
+
+  describe('joker special condition: capacity_under_budget', () => {
+    it('activates joker when under budget', () => {
+      // jk_cost_ceiling: require_any_tags=["cache","cdn"], special="capacity_under_budget"
+      const deployed = [comp('cmp_cdn')];
+      const startupSchool = school('school_startup');
+      const costCeiling = joker('jk_cost_ceiling');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL, // budget = 110 + 20 = 130, CDN cost = 8
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [costCeiling],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+
+      const result = runPhase(input);
+
+      // Under budget (8 <= 130) and has "cdn" tag -> should activate
+      expect(result.activeJokers.map(j => j.id)).toContain('jk_cost_ceiling');
+    });
+  });
+
+  describe('joker special condition: component_count_lte_4', () => {
+    it('activates joker when deploying 4 or fewer components', () => {
+      // jk_mvp_first: require_any_tags=["gateway","cache"], special="component_count_lte_4"
+      const deployed = [comp('cmp_api_gw'), comp('cmp_cache')];
+      const startupSchool = school('school_startup');
+      const mvpFirst = joker('jk_mvp_first');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [mvpFirst],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+
+      const result = runPhase(input);
+
+      // 2 components (<=4) and has "gateway" tag -> should activate
+      expect(result.activeJokers.map(j => j.id)).toContain('jk_mvp_first');
+    });
+
+    it('does not activate joker when deploying more than 4 components', () => {
+      const deployed = [
+        comp('cmp_api_gw'),
+        comp('cmp_cache'),
+        comp('cmp_cdn'),
+        comp('cmp_sql_db'),
+        comp('cmp_queue'),
+      ];
+      const startupSchool = school('school_startup');
+      const mvpFirst = joker('jk_mvp_first');
+
+      const input: PhaseInput = {
+        phase: { ...PHASE_SMALL, capacity_budget: 200 },
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [mvpFirst],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+
+      const result = runPhase(input);
+
+      // 5 components (>4) -> should NOT activate despite having matching tags
+      expect(result.activeJokers.map(j => j.id)).not.toContain('jk_mvp_first');
     });
   });
 });

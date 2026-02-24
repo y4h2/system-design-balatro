@@ -1,9 +1,18 @@
-import type { Component, Phase, Pattern, SuperPattern, Joker, Event, School } from '../schemas/index.js';
-import { validateDeployment } from './deploy.js';
+import type { Component, Phase, Pattern, SuperPattern, Joker, Event, School, BossRule } from '../schemas/index.js';
+import { validateDeployment, getEffectiveCapacityCost } from './deploy.js';
 import { detectPatterns } from './patterns.js';
 import { computeRiskExposure, resolveEvent, type RiskReport, type EventResult } from './risk.js';
 import { computePanel, computeChips, computeMult, computeFinalScore, type Panel } from './scoring.js';
 import { validateConstraints } from './constraints.js';
+import {
+  parseBossRuleEffects,
+  applyBossBudgetFactor,
+  applyBossCapacityCost,
+  applyTechDebtRisks,
+  validateNoDuplicateTags,
+  type BossRuleEffects,
+} from './boss-rules.js';
+import { checkJokerSpecialCondition } from './joker-specials.js';
 
 // ── Input / Output types ────────────────────────────────────────────
 
@@ -16,6 +25,7 @@ export interface PhaseInput {
   patterns: Pattern[];
   superPatterns: SuperPattern[];
   events: Event[];
+  bossRule?: BossRule;
 }
 
 export interface PhaseSettlement {
@@ -33,9 +43,11 @@ export interface PhaseSettlement {
   chips: number;
   mult: number;
   constraintPenalty: number;
+  bossPenalty: number;
   finalScore: number;
   targetScore: number;
   passed: boolean;
+  bossEffects?: BossRuleEffects;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -93,14 +105,29 @@ function checkSuperPatterns(
 // ── Main runner ─────────────────────────────────────────────────────
 
 export function runPhase(input: PhaseInput): PhaseSettlement {
-  const { phase, deployed, school, baseline, jokers, patterns, superPatterns, events } = input;
+  const { phase, deployed, school, baseline, jokers, patterns, superPatterns, events, bossRule } = input;
 
-  // 1. Calculate effective budget
-  const capacityBudget = phase.capacity_budget + school.modifiers.capacity_budget_offset;
+  // 0. Parse boss rule effects (if any)
+  const bossEffects = bossRule ? parseBossRuleEffects(bossRule) : undefined;
 
-  // 2. Validate deployment (capacity check)
-  const deployment = validateDeployment(deployed, capacityBudget, school.modifiers);
-  const capacityUsed = deployment.totalCost;
+  // 1. Calculate effective budget (with boss budget factor)
+  let capacityBudget = phase.capacity_budget + school.modifiers.capacity_budget_offset;
+  if (bossEffects) {
+    capacityBudget = applyBossBudgetFactor(capacityBudget, bossEffects);
+  }
+
+  // 2. Validate deployment (capacity check) with boss capacity cost modifier
+  let capacityUsed: number;
+  if (bossEffects?.capacityMultiplierForTags) {
+    // When boss modifies capacity costs, compute manually with boss overrides
+    capacityUsed = deployed.reduce((sum, c) => {
+      const baseCost = getEffectiveCapacityCost(c, school.modifiers);
+      return sum + applyBossCapacityCost(baseCost, c, bossEffects);
+    }, 0);
+  } else {
+    const deployment = validateDeployment(deployed, capacityBudget, school.modifiers);
+    capacityUsed = deployment.totalCost;
+  }
 
   // 3. Collect deployed tags
   const deployedTags = [...new Set(deployed.flatMap(c => c.tags))];
@@ -108,17 +135,30 @@ export function runPhase(input: PhaseInput): PhaseSettlement {
   // 4. Detect triggered patterns
   const triggeredPatterns = detectPatterns(deployedTags, patterns);
 
-  // 5. Compute risk exposure
-  const riskReport = computeRiskExposure(deployed);
+  // 5. Apply tech debt risks (boss: extra random risks per component)
+  let riskComponents = deployed;
+  if (bossEffects?.extraRandomRiskPerComponent) {
+    riskComponents = applyTechDebtRisks(deployed, bossEffects.extraRandomRiskPerComponent);
+  }
 
-  // 6. Resolve events against exposed risks
+  // 6. Compute risk exposure (using possibly modified components)
+  const riskReport = computeRiskExposure(riskComponents);
+
+  // 7. Resolve events against exposed risks
   const eventResults = events.map(e => resolveEvent(e, riskReport.exposed));
 
-  // 7. Check Joker activation
-  const activeJokers = jokers.filter(j => isJokerActive(j, deployedTags));
+  // 8. Check Joker activation (tag conditions + special conditions)
+  const activeJokers = jokers.filter(j => {
+    if (!isJokerActive(j, deployedTags)) return false;
+    return checkJokerSpecialCondition(j, {
+      capacityUsed,
+      capacityBudget,
+      deployedCount: deployed.length,
+    });
+  });
   const jokerMultipliers = activeJokers.map(j => j.multiplier);
 
-  // 8. Check super patterns
+  // 9. Check super patterns
   const triggeredSuperPatterns = checkSuperPatterns(
     superPatterns,
     triggeredPatterns.length,
@@ -127,7 +167,7 @@ export function runPhase(input: PhaseInput): PhaseSettlement {
     capacityBudget,
   );
 
-  // 9. Compute panel
+  // 10. Compute panel
   const patternDeltas: Panel[] = triggeredPatterns.map(p => p.effects.delta);
   const eventPenalties: Panel[] = eventResults
     .filter(er => er.hit)
@@ -135,18 +175,18 @@ export function runPhase(input: PhaseInput): PhaseSettlement {
 
   const panel = computePanel(deployed, baseline, patternDeltas, eventPenalties);
 
-  // 10. Compute chips
+  // 11. Compute chips
   const cxPositive = school.modifiers.scoring_overrides?.cx_as_positive === true;
   const chips = computeChips(panel, phase.weights, cxPositive);
 
-  // 11. Compute mult
+  // 12. Compute mult
   const superPatternMultAdds = triggeredSuperPatterns
     .filter(sp => sp.reward.type === 'mult_burst')
     .map(sp => ({ mult_add: (sp.reward as { type: 'mult_burst'; mult_add: number }).mult_add }));
 
   const mult = computeMult(triggeredPatterns, superPatternMultAdds, jokerMultipliers);
 
-  // 12. Validate constraints
+  // 13. Validate constraints
   const constraintResult = validateConstraints({
     sla: phase.constraints.sla,
     compliance_level: phase.constraints.compliance_level,
@@ -159,8 +199,16 @@ export function runPhase(input: PhaseInput): PhaseSettlement {
   });
   const constraintPenalty = constraintResult.totalPenalty;
 
-  // 13. Compute final score
-  const finalScore = computeFinalScore(chips, mult, constraintPenalty);
+  // 14. Check boss duplicate-tag penalty
+  let bossPenalty = 0;
+  if (bossEffects?.noDuplicateTags) {
+    const violations = validateNoDuplicateTags(deployed);
+    // Each duplicate tag incurs a 5-point penalty
+    bossPenalty = violations.length * 5;
+  }
+
+  // 15. Compute final score (include boss penalty)
+  const finalScore = computeFinalScore(chips, mult, constraintPenalty + bossPenalty);
   const targetScore = phase.target_score;
   const passed = finalScore >= targetScore;
 
@@ -179,8 +227,10 @@ export function runPhase(input: PhaseInput): PhaseSettlement {
     chips,
     mult,
     constraintPenalty,
+    bossPenalty,
     finalScore,
     targetScore,
     passed,
+    bossEffects,
   };
 }
