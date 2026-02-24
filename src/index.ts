@@ -1,2 +1,3 @@
-// src/index.ts
-console.log('System Design Card Game');
+import { playSinglePhase } from './game/single-phase.js';
+
+playSinglePhase().catch(console.error);
