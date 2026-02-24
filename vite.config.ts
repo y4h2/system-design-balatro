@@ -8,4 +8,7 @@ export default defineConfig({
   build: {
     outDir: 'dist-web',
   },
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
 });
