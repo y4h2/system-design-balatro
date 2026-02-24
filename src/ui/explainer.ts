@@ -50,6 +50,11 @@ export function formatSettlement(settlement: PhaseSettlement): string {
       lines.push(`★ ${sp.name} (超级牌型)`);
     }
   }
+  if (settlement.superPatternRewards && settlement.superPatternRewards.length > 0) {
+    for (const r of settlement.superPatternRewards) {
+      lines.push(`  → ${r.description}`);
+    }
+  }
 
   // 4. Joker 生效 (Jokers)
   lines.push('');

@@ -28,6 +28,11 @@ export interface PhaseInput {
   bossRule?: BossRule;
 }
 
+export interface SuperPatternRewardApplied {
+  type: string;
+  description: string;
+}
+
 export interface PhaseSettlement {
   deployedComponents: Component[];
   deployedTags: string[];
@@ -36,6 +41,7 @@ export interface PhaseSettlement {
   panel: Panel;
   triggeredPatterns: Pattern[];
   triggeredSuperPatterns: SuperPattern[];
+  superPatternRewards: SuperPatternRewardApplied[];
   riskReport: RiskReport;
   eventResults: EventResult[];
   activeJokers: Joker[];
@@ -167,7 +173,37 @@ export function runPhase(input: PhaseInput): PhaseSettlement {
     capacityBudget,
   );
 
-  // 10. Compute panel
+  // 9a. Apply super pattern rewards
+  const superPatternRewards: SuperPatternRewardApplied[] = [];
+
+  // capacity_refund: reduce capacityUsed
+  for (const sp of triggeredSuperPatterns) {
+    if (sp.reward.type === 'capacity_refund') {
+      const refund = (sp.reward as { type: 'capacity_refund'; refund_amount: number }).refund_amount;
+      capacityUsed = Math.max(0, capacityUsed - refund);
+      superPatternRewards.push({
+        type: 'capacity_refund',
+        description: `${sp.name}: capacity refund -${refund}`,
+      });
+    }
+  }
+
+  // event_immunity: zero out all event penalties
+  const hasEventImmunity = triggeredSuperPatterns.some(sp => sp.reward.type === 'event_immunity');
+  if (hasEventImmunity) {
+    for (const er of eventResults) {
+      if (er.hit) {
+        er.penalty = { perf: 0, rel: 0, cx: 0 };
+      }
+    }
+    const immunSp = triggeredSuperPatterns.find(sp => sp.reward.type === 'event_immunity')!;
+    superPatternRewards.push({
+      type: 'event_immunity',
+      description: `${immunSp.name}: all event penalties zeroed`,
+    });
+  }
+
+  // 10. Compute panel (with possibly zeroed event penalties)
   const patternDeltas: Panel[] = triggeredPatterns.map(p => p.effects.delta);
   const eventPenalties: Panel[] = eventResults
     .filter(er => er.hit)
@@ -176,13 +212,32 @@ export function runPhase(input: PhaseInput): PhaseSettlement {
   const panel = computePanel(deployed, baseline, patternDeltas, eventPenalties);
 
   // 11. Compute chips
-  const cxPositive = school.modifiers.scoring_overrides?.cx_as_positive === true;
+  // dimension_flip: override cxPositive if triggered
+  let cxPositive = school.modifiers.scoring_overrides?.cx_as_positive === true;
+  for (const sp of triggeredSuperPatterns) {
+    if (sp.reward.type === 'dimension_flip') {
+      const reward = sp.reward as { type: 'dimension_flip'; flip_dimension: string; from: string; to: string };
+      if (reward.flip_dimension === 'cx' && reward.to === 'positive') {
+        cxPositive = true;
+        superPatternRewards.push({
+          type: 'dimension_flip',
+          description: `${sp.name}: Cx becomes positive in chips formula`,
+        });
+      }
+    }
+  }
   const chips = computeChips(panel, phase.weights, cxPositive);
 
   // 12. Compute mult
   const superPatternMultAdds = triggeredSuperPatterns
     .filter(sp => sp.reward.type === 'mult_burst')
-    .map(sp => ({ mult_add: (sp.reward as { type: 'mult_burst'; mult_add: number }).mult_add }));
+    .map(sp => {
+      superPatternRewards.push({
+        type: 'mult_burst',
+        description: `${sp.name}: mult +${(sp.reward as { type: 'mult_burst'; mult_add: number }).mult_add}`,
+      });
+      return { mult_add: (sp.reward as { type: 'mult_burst'; mult_add: number }).mult_add };
+    });
 
   const mult = computeMult(triggeredPatterns, superPatternMultAdds, jokerMultipliers);
 
@@ -220,6 +275,7 @@ export function runPhase(input: PhaseInput): PhaseSettlement {
     panel,
     triggeredPatterns,
     triggeredSuperPatterns,
+    superPatternRewards,
     riskReport,
     eventResults,
     activeJokers,

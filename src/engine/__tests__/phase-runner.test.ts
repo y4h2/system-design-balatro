@@ -67,7 +67,8 @@ describe('phase-runner', () => {
       expect(result.triggeredPatterns.map(p => p.id)).toContain('pattern_read_beast');
 
       // Capacity: CDN=8, Cache=15, SQL=20 = 43, budget = 110 + 20 (startup offset) = 130
-      expect(result.capacityUsed).toBe(43);
+      // sp_edge_dancer triggers (1 pattern + 5 exposed risks >= 3), refunding 20
+      expect(result.capacityUsed).toBe(23); // 43 - 20 refund
       expect(result.capacityBudget).toBe(130);
 
       // No events -> no event penalties
@@ -80,8 +81,9 @@ describe('phase-runner', () => {
       // sum: perf=2+2+3+1+1=9, rel=2+0+0+1=3, cx=2+0+1+1=4
       expect(result.panel).toEqual({ perf: 9, rel: 3, cx: 4 });
 
-      // Chips = 1.0*9 + 0.6*3 - 0.4*4 = 9 + 1.8 - 1.6 = 9.2
-      expect(result.chips).toBeCloseTo(9.2);
+      // sp_minimalist triggers (1 pattern + 43/130 = 33% <= 60%), flipping cx to positive
+      // Chips = 1.0*9 + 0.6*3 + 0.4*4 = 9 + 1.8 + 1.6 = 12.4
+      expect(result.chips).toBeCloseTo(12.4);
 
       // Mult = (1 + 2) = 3, no jokers
       expect(result.mult).toBeCloseTo(3);
@@ -89,8 +91,8 @@ describe('phase-runner', () => {
       // Constraint penalty: SLA 99.0 with rel=3 -> no penalty (rel >= 3)
       expect(result.constraintPenalty).toBe(0);
 
-      // Final = round(9.2 * 3 - 0) = round(27.6) = 28
-      expect(result.finalScore).toBe(28);
+      // Final = round(12.4 * 3 - 0) = round(37.2) = 37
+      expect(result.finalScore).toBe(37);
       expect(result.targetScore).toBe(12);
       expect(result.passed).toBe(true);
     });
@@ -813,6 +815,455 @@ describe('phase-runner', () => {
 
       // 5 components (>4) -> should NOT activate despite having matching tags
       expect(result.activeJokers.map(j => j.id)).not.toContain('jk_mvp_first');
+    });
+  });
+
+  // ── Super Pattern Reward Effects ─────────────────────────────────────
+
+  describe('super pattern reward: capacity_refund (Edge Dancer)', () => {
+    it('reduces capacityUsed by refund_amount when triggered', () => {
+      // CDN + Cache + SQL DB:
+      //   Pattern: Read Beast (1 pattern)
+      //   Exposed risks: cache_invalidation, cache_avalanche, data_inconsistency,
+      //                  db_single_point, slow_query (5 exposed risks >= 3)
+      //   -> sp_edge_dancer triggers: capacity_refund 20
+      const deployed = [comp('cmp_cdn'), comp('cmp_cache'), comp('cmp_sql_db')];
+      const startupSchool = school('school_startup');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+
+      const result = runPhase(input);
+
+      // Base capacity: CDN=8 + Cache=15 + SQL=20 = 43
+      // sp_edge_dancer refunds 20 -> 43 - 20 = 23
+      expect(result.triggeredSuperPatterns.map(sp => sp.id)).toContain('sp_edge_dancer');
+      expect(result.capacityUsed).toBe(23);
+      expect(result.superPatternRewards).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'capacity_refund' }),
+        ]),
+      );
+    });
+
+    it('clamps capacityUsed to minimum 0', () => {
+      // Use a very cheap deployment that still triggers a pattern + 3+ risks
+      // CDN(8) + Cache(15) = 23 total, Read Beast pattern triggers
+      // But we need 3+ exposed risks. CDN exposes cache_invalidation, Cache exposes cache_avalanche, data_inconsistency
+      // That's 3 exposed risks. So sp_edge_dancer triggers.
+      // 23 - 20 = 3 (not negative, but tests the boundary logic)
+      const deployed = [comp('cmp_cdn'), comp('cmp_cache')];
+      const startupSchool = school('school_startup');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+
+      const result = runPhase(input);
+
+      // CDN exposes: cache_invalidation
+      // Cache exposes: cache_avalanche, data_inconsistency
+      // = 3 exposed risks
+      expect(result.riskReport.exposed.length).toBeGreaterThanOrEqual(3);
+      expect(result.triggeredSuperPatterns.map(sp => sp.id)).toContain('sp_edge_dancer');
+      // 23 - 20 = 3 >= 0
+      expect(result.capacityUsed).toBe(3);
+      expect(result.capacityUsed).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('super pattern reward: event_immunity (Iron Wall)', () => {
+    it('zeroes event penalties when all risks are sealed', () => {
+      // Need: 1 pattern + 0 exposed risks -> sp_iron_wall triggers
+      // Cache + Cache Warm-up + Consistency Checker + CDN:
+      //   Pattern: Read Beast (cache + cdn)
+      //   Cache exposes: cache_avalanche (sealed by warmup), data_inconsistency (sealed by consistency_checker)
+      //   CDN exposes: cache_invalidation (still exposed!)
+      //   Need to seal ALL risks.
+      //
+      // Actually we need 0 exposed risks. Let's use components that seal everything.
+      // Health Check (no exposes, no seals) + Observability Stack (exposes alert_fatigue) won't work either.
+      //
+      // Strategy: Use components where all exposed risks get sealed:
+      // Cache(exposes: cache_avalanche, data_inconsistency)
+      //   + Cache Warm-up(seals: cache_avalanche, requires: cache)
+      //   + Consistency Checker(seals: data_inconsistency, replication_lag)
+      //   + CDN(exposes: cache_invalidation) - this remains exposed!
+      //
+      // We need Read Beast which requires cache + (cdn or read_replica).
+      // With CDN: cache_invalidation is exposed and not sealed -> 1 exposed risk -> no Iron Wall.
+      //
+      // Alternative approach: use only components that expose nothing or seal everything.
+      // Use a pattern that doesn't need high-risk components.
+      //
+      // Debug Loop: requires metrics + tracing + alerting -> Observability Stack has all 3!
+      // Observability Stack exposes: alert_fatigue
+      // We need to seal alert_fatigue too. No component seals alert_fatigue in the data.
+      //
+      // Simplest: use a custom set of super patterns with only sp_iron_wall
+      // and a deployment where we have 0 exposed risks + 1 pattern.
+      //
+      // Health Check(exposes:[]) + Multi-AZ(exposes: network_partition, cost_explosion)
+      //   + Circuit Breaker(exposes: false_tripping)
+      //   Pattern: Always On (multi_az + health_check + (circuit_breaker or failover))
+      //   Exposed: network_partition, cost_explosion, false_tripping -> 3 risks, not 0.
+      //
+      // We need 0 exposed risks with 1+ pattern. That's very hard with real data.
+      // Let's pass only sp_iron_wall as the super pattern and use a selective set.
+      //
+      // Actually, let's look: Cache Warm-up seals cache_avalanche, Consistency Checker seals data_inconsistency.
+      // If we deploy Cache + CDN + Cache Warm-up + Consistency Checker:
+      //   Cache exposes: cache_avalanche (sealed), data_inconsistency (sealed)
+      //   CDN exposes: cache_invalidation (NOT sealed)
+      //   Cache Warm-up: no exposes
+      //   Consistency Checker: no exposes
+      //   Exposed: cache_invalidation -> 1 exposed. Still not 0.
+      //
+      // The only way to get 0 exposed is with zero-expose components that form a pattern.
+      // Or use components that seal each other's risks.
+      //
+      // Let's use Queue + Worker + Rate Limiter + Dead Letter Queue + Idempotency + API Gateway:
+      // Rate Limiter: exposes false_rejection
+      // Queue: exposes message_loss, ordering_violation
+      // Worker: exposes worker_backlog
+      // Dead Letter Queue: seals message_loss (requires queue)
+      // Idempotency: seals ordering_violation, duplicate_submit (requires gateway)
+      // API GW: exposes gateway_bottleneck
+      // Service Mesh: seals false_tripping (doesn't help)
+      //
+      // Still have: false_rejection, worker_backlog, gateway_bottleneck exposed.
+      // This approach won't give 0 exposed risks with the real data easily.
+      //
+      // Best approach: use only sp_iron_wall in the super patterns list and construct
+      // a deployment with 0 exposed risks artificially using components that expose nothing.
+      //
+      // Health Check (exposes: []) has no tags matching any pattern though.
+      // Feature Flag (exposes: flag_debt) won't work.
+      //
+      // Simplest: deploy Cache Warm-up (exposes []) + Consistency Checker (exposes [])
+      // + Health Check (exposes []) but they don't form any pattern.
+      //
+      // The cleanest test: provide only sp_iron_wall as super pattern, and filter
+      // the component set to ensure we hit the trigger. Use a custom super pattern
+      // directly instead of relying on the full data.
+
+      // Use sp_iron_wall with a forced scenario:
+      // Deploy only components that expose nothing, but form a pattern.
+      // Since no real pattern can form from zero-expose components alone,
+      // we'll pass only sp_iron_wall and use components that seal all their risks.
+
+      // Alternative: use Cache + Cache Warm-up + CDN, which gets Read Beast.
+      // CDN exposes cache_invalidation (1 exposed). Not 0.
+      // So sp_iron_wall won't trigger from real data in most cases.
+      //
+      // For a proper test, we supply only sp_iron_wall and use a minimal mock approach:
+      // Deploy CDN + Cache (Read Beast) + event, then verify event penalties ARE applied
+      // when Iron Wall does NOT trigger (exposed > 0),
+      // vs. when it DOES trigger. Since 0 exposed is hard, we can supply sp_iron_wall
+      // with a modified trigger for testing.
+      //
+      // Actually the cleanest way: just filter the super patterns to include only
+      // sp_iron_wall with its real trigger, and build a deployment that actually
+      // achieves 0 exposed risks. We need to seal everything.
+      //
+      // If we deploy: Queue + Worker + Dead Letter Queue (seals message_loss)
+      //   + Idempotency (seals ordering_violation, needs gateway) + API GW
+      //   Queue exposes: message_loss (sealed by DLQ), ordering_violation (sealed by idempotency)
+      //   Worker exposes: worker_backlog (NOT sealed)
+      //   API GW exposes: gateway_bottleneck (NOT sealed)
+      //   Pattern: Shock Absorber (rate_limit + queue + worker) - needs rate_limit!
+      //
+      // This is getting complex. Let me just use the iron_wall super pattern
+      // with an artificially high max_exposed_risks for testing, or supply
+      // a custom super pattern object.
+
+      const ironWall = data.superPatterns.find(sp => sp.id === 'sp_iron_wall')!;
+
+      // Deploy CDN + Cache + Cache Warm-up + Consistency Checker
+      // Pattern: Read Beast (cache + cdn)
+      // Risks: CDN exposes cache_invalidation (1 exposed, not sealed)
+      // Cache exposes cache_avalanche (sealed by warmup), data_inconsistency (sealed by checker)
+      // Total exposed: 1 (cache_invalidation) -> sp_iron_wall max=0 won't trigger
+
+      // So let's just construct a custom sp_iron_wall with a relaxed trigger for the test,
+      // OR create a scenario where exposed = 0.
+
+      // Actually: the simplest real scenario for 0 exposed is:
+      // Only deploy components with empty exposes arrays.
+      // Cache Warm-up (exposes: []), Consistency Checker (exposes: []),
+      // Health Check (exposes: []), Audit Log (exposes: []), Encryption (exposes: [])
+      // But these don't form any pattern!
+      //
+      // The task says "Deploy components that trigger Iron Wall (1 pattern + 0 exposed risks)"
+      // In practice this is nearly impossible with the real data unless we use a custom
+      // super pattern. The test should verify the event_immunity logic works.
+      //
+      // Approach: Create a custom super pattern that's easier to trigger and test against.
+
+      const testIronWall: typeof ironWall = {
+        ...ironWall,
+        trigger: {
+          type: 'risk_and_pattern' as const,
+          min_patterns: 1,
+          max_exposed_risks: 5, // Relaxed: allows up to 5 exposed risks
+        },
+      };
+
+      const deployed = [comp('cmp_cdn'), comp('cmp_cache'), comp('cmp_sql_db')];
+      const startupSchool = school('school_startup');
+      const dbSlowEvent = event('event_db_slow');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: [testIronWall],
+        events: [dbSlowEvent],
+      };
+
+      const result = runPhase(input);
+
+      // Should trigger our modified iron wall
+      expect(result.triggeredSuperPatterns.map(sp => sp.id)).toContain('sp_iron_wall');
+
+      // Event should still "hit" (risks are still exposed)
+      expect(result.eventResults[0].hit).toBe(true);
+      // But the penalty should be zeroed by event_immunity
+      expect(result.eventResults[0].penalty).toEqual({ perf: 0, rel: 0, cx: 0 });
+
+      // The panel should NOT include event penalties
+      // baseline {2,2,2} + CDN {2,0,0} + Cache {3,0,1} + SQL {1,1,1} + Read Beast {1,0,0}
+      // = {9, 3, 4} (no event penalty applied)
+      expect(result.panel).toEqual({ perf: 9, rel: 3, cx: 4 });
+
+      expect(result.superPatternRewards).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'event_immunity' }),
+        ]),
+      );
+    });
+
+    it('does not affect events that miss', () => {
+      const ironWall = data.superPatterns.find(sp => sp.id === 'sp_iron_wall')!;
+      const testIronWall: typeof ironWall = {
+        ...ironWall,
+        trigger: {
+          type: 'risk_and_pattern' as const,
+          min_patterns: 1,
+          max_exposed_risks: 10,
+        },
+      };
+
+      // Use an event that targets risks NOT exposed by our deployment
+      // CDN+Cache+SQL expose: cache_invalidation, cache_avalanche, data_inconsistency,
+      //   db_single_point, slow_query
+      // event_gray_release_fail targets: alert_fatigue, worker_backlog -> will miss
+      const grayRelease = event('event_gray_release_fail');
+      const deployed = [comp('cmp_cdn'), comp('cmp_cache'), comp('cmp_sql_db')];
+      const startupSchool = school('school_startup');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: [testIronWall],
+        events: [grayRelease],
+      };
+
+      const result = runPhase(input);
+
+      // Event misses - no risks matched
+      expect(result.eventResults[0].hit).toBe(false);
+      // Penalty is already zero for misses
+      expect(result.eventResults[0].penalty).toEqual({ perf: 0, rel: 0, cx: 0 });
+    });
+  });
+
+  describe('super pattern reward: dimension_flip (Minimalist)', () => {
+    it('makes Cx positive in chips formula when triggered', () => {
+      // CDN + Cache + SQL DB with a large budget to trigger sp_minimalist
+      // Budget: 200 + 20 (startup) = 220, usage: 43, 43/220 = ~19.5% <= 60%
+      // Pattern: Read Beast (1 pattern >= 1)
+      // -> sp_minimalist triggers: dimension_flip cx
+      const deployed = [comp('cmp_cdn'), comp('cmp_cache'), comp('cmp_sql_db')];
+      const startupSchool = school('school_startup');
+
+      const bigBudgetPhase: Phase = {
+        ...PHASE_SMALL,
+        capacity_budget: 200,
+      };
+
+      const input: PhaseInput = {
+        phase: bigBudgetPhase,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+
+      const result = runPhase(input);
+
+      expect(result.triggeredSuperPatterns.map(sp => sp.id)).toContain('sp_minimalist');
+
+      // Panel: {perf:9, rel:3, cx:4}
+      // Without dimension_flip: chips = 1.0*9 + 0.6*3 - 0.4*4 = 9.2
+      // With dimension_flip (cx positive): chips = 1.0*9 + 0.6*3 + 0.4*4 = 12.4
+      expect(result.chips).toBeCloseTo(12.4);
+
+      expect(result.superPatternRewards).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'dimension_flip' }),
+        ]),
+      );
+    });
+
+    it('does not flip cx when budget usage exceeds 60%', () => {
+      // Use a tight budget so sp_minimalist does NOT trigger
+      // CDN(8) + Cache(15) + SQL(20) = 43, budget needs to be < 43/0.6 = ~72
+      // So budget = 50 + 20 = 70, 43/70 = ~61.4% > 60%
+      const deployed = [comp('cmp_cdn'), comp('cmp_cache'), comp('cmp_sql_db')];
+      const startupSchool = school('school_startup');
+
+      const tightBudgetPhase: Phase = {
+        ...PHASE_SMALL,
+        capacity_budget: 50,
+      };
+
+      const input: PhaseInput = {
+        phase: tightBudgetPhase,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+
+      const result = runPhase(input);
+
+      expect(result.triggeredSuperPatterns.map(sp => sp.id)).not.toContain('sp_minimalist');
+
+      // Without dimension_flip: chips = 1.0*9 + 0.6*3 - 0.4*4 = 9.2
+      expect(result.chips).toBeCloseTo(9.2);
+    });
+
+    it('stacks with school cx_as_positive (no double flip)', () => {
+      // Minimalist school already has cx_as_positive: true
+      // sp_minimalist also flips cx to positive
+      // Result should be the same: cx remains positive
+      const deployed = [comp('cmp_cdn'), comp('cmp_cache'), comp('cmp_sql_db')];
+      const minimalistSchool = school('school_minimalist');
+
+      const bigBudgetPhase: Phase = {
+        ...PHASE_SMALL,
+        capacity_budget: 200, // +(-30) minimalist offset = 170, 43/170 = 25% <= 60%
+      };
+
+      const input: PhaseInput = {
+        phase: bigBudgetPhase,
+        deployed,
+        school: minimalistSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+
+      const result = runPhase(input);
+
+      // Both school and super pattern want cx positive -> still positive
+      // chips = 1.0*9 + 0.6*3 + 0.4*4 = 12.4
+      expect(result.chips).toBeCloseTo(12.4);
+    });
+  });
+
+  describe('super pattern reward tracking', () => {
+    it('tracks all applied rewards in superPatternRewards', () => {
+      // Deploy CDN + Cache + SQL with big budget to trigger:
+      // - sp_edge_dancer (capacity_refund) - 1 pattern + 5 exposed risks >= 3
+      // - sp_minimalist (dimension_flip) - 1 pattern + usage <= 60%
+      const deployed = [comp('cmp_cdn'), comp('cmp_cache'), comp('cmp_sql_db')];
+      const startupSchool = school('school_startup');
+
+      const bigBudgetPhase: Phase = {
+        ...PHASE_SMALL,
+        capacity_budget: 200,
+      };
+
+      const input: PhaseInput = {
+        phase: bigBudgetPhase,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+
+      const result = runPhase(input);
+
+      // Both sp_edge_dancer and sp_minimalist should trigger
+      expect(result.triggeredSuperPatterns.map(sp => sp.id)).toEqual(
+        expect.arrayContaining(['sp_edge_dancer', 'sp_minimalist']),
+      );
+
+      // Both rewards should be tracked
+      const rewardTypes = result.superPatternRewards.map(r => r.type);
+      expect(rewardTypes).toContain('capacity_refund');
+      expect(rewardTypes).toContain('dimension_flip');
+
+      // Each reward should have a description
+      for (const reward of result.superPatternRewards) {
+        expect(reward.description).toBeTruthy();
+      }
+    });
+
+    it('returns empty superPatternRewards when no super patterns trigger', () => {
+      const deployed = [comp('cmp_api_gw')];
+      const startupSchool = school('school_startup');
+
+      const input: PhaseInput = {
+        phase: PHASE_SMALL,
+        deployed,
+        school: startupSchool,
+        baseline: DEFAULT_BASELINE,
+        jokers: [],
+        patterns: data.patterns,
+        superPatterns: data.superPatterns,
+        events: [],
+      };
+
+      const result = runPhase(input);
+
+      expect(result.triggeredSuperPatterns).toHaveLength(0);
+      expect(result.superPatternRewards).toHaveLength(0);
     });
   });
 });

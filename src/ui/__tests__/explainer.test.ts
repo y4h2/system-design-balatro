@@ -120,6 +120,7 @@ function fullSettlement(): PhaseSettlement {
     panel: { perf: 7, rel: 1, cx: 5 },
     triggeredPatterns: [readBeast],
     triggeredSuperPatterns: [fullStack],
+    superPatternRewards: [],
     riskReport: {
       allExposed: ['db_single_point', 'slow_query'],
       allSealed: [],
@@ -159,6 +160,7 @@ function minimalSettlement(): PhaseSettlement {
     panel: { perf: 2, rel: 3, cx: 3 },
     triggeredPatterns: [],
     triggeredSuperPatterns: [],
+    superPatternRewards: [],
     riskReport: {
       allExposed: [],
       allSealed: [],
