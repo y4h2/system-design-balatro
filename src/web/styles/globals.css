@@ -1,1 +1,137 @@
 @import "tailwindcss";
+
+:root {
+  /* Felt & background */
+  --color-felt: #1a472a;
+  --color-felt-dark: #0f2d1a;
+  --color-surface: #1a1a2e;
+  --color-surface-light: #252542;
+
+  /* Neon scores */
+  --color-chips: #f5a623;
+  --color-mult: #e74c3c;
+  --color-gold: #ffd700;
+
+  /* Card borders by rarity */
+  --color-common: #6b7280;
+  --color-uncommon: #9b59b6;
+  --color-rare: #f1c40f;
+
+  /* Card borders by category */
+  --color-functional: #2ecc71;
+  --color-defensive: #3498db;
+
+  /* Panel dimensions */
+  --color-perf: #e74c3c;
+  --color-rel: #3498db;
+  --color-cx: #9b59b6;
+
+  /* Text */
+  --color-text: #e8e8e8;
+  --color-text-muted: #8a8a8a;
+
+  /* Shadows & glows */
+  --glow-chips: 0 0 12px rgba(245, 166, 35, 0.6);
+  --glow-mult: 0 0 12px rgba(231, 76, 60, 0.6);
+  --glow-gold: 0 0 12px rgba(255, 215, 0, 0.5);
+  --glow-pattern: 0 0 10px rgba(46, 204, 113, 0.5);
+
+  /* Fonts */
+  --font-display: 'JetBrains Mono', monospace;
+  --font-body: 'Noto Sans SC', sans-serif;
+}
+
+/* Base styles */
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-felt-dark);
+}
+
+/* Felt background with noise texture */
+.felt-bg {
+  background:
+    repeating-radial-gradient(
+      circle at 17% 32%,
+      transparent 0,
+      transparent 1px,
+      rgba(0, 0, 0, 0.03) 1px,
+      rgba(0, 0, 0, 0.03) 2px
+    ),
+    repeating-radial-gradient(
+      circle at 62% 78%,
+      transparent 0,
+      transparent 1px,
+      rgba(255, 255, 255, 0.02) 1px,
+      rgba(255, 255, 255, 0.02) 2px
+    ),
+    linear-gradient(135deg, var(--color-felt-dark) 0%, var(--color-felt) 50%, var(--color-felt-dark) 100%);
+}
+
+/* Score display font */
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Neon text glow effects */
+.neon-chips {
+  color: var(--color-chips);
+  text-shadow: var(--glow-chips);
+}
+
+.neon-mult {
+  color: var(--color-mult);
+  text-shadow: var(--glow-mult);
+}
+
+.neon-gold {
+  color: var(--color-gold);
+  text-shadow: var(--glow-gold);
+}
+
+/* Card base style */
+.card-base {
+  background: var(--color-surface);
+  border: 2px solid var(--color-surface-light);
+  border-radius: 12px;
+  padding: 12px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-base:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Card rarity borders */
+.card-common { border-color: var(--color-common); }
+.card-uncommon { border-color: var(--color-uncommon); box-shadow: 0 0 8px rgba(155, 89, 182, 0.3); }
+.card-rare { border-color: var(--color-rare); box-shadow: 0 0 12px rgba(241, 196, 15, 0.4); }
+
+/* Card selected state */
+.card-selected {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+  border-color: var(--color-functional) !important;
+}
+
+/* Pattern badge glow */
+.pattern-glow {
+  box-shadow: var(--glow-pattern);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-light);
+  border-radius: 3px;
+}
