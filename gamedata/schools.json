@@ -1,0 +1,105 @@
+[
+  {
+    "id": "school_sre",
+    "name": "SRE \u6d41\u6d3e",
+    "desc": "\u6211\u4eec\u4e0d\u6015\u8d35\uff0c\u6015\u7684\u662f\u6302",
+    "modifiers": {
+      "capacity_discount_tags": ["multi_az", "health_check", "circuit_breaker", "failover"],
+      "capacity_discount_factor": 0.7,
+      "event_severity_offset": 1,
+      "draft_rounds": 10,
+      "repair_count": 1,
+      "joker_slots": 4,
+      "capacity_budget_offset": 0,
+      "baseline_overrides": {}
+    }
+  },
+  {
+    "id": "school_startup",
+    "name": "\u521b\u4e1a\u6d41\u6d3e",
+    "desc": "\u5148\u4e0a\u7ebf\u518d\u8bf4",
+    "modifiers": {
+      "capacity_discount_tags": [],
+      "capacity_discount_factor": 1.0,
+      "event_severity_offset": 0,
+      "draft_rounds": 12,
+      "repair_count": 1,
+      "joker_slots": 4,
+      "capacity_budget_offset": 20,
+      "baseline_overrides": {},
+      "constraint_overrides": { "delivery_weeks_factor": 0.5 }
+    }
+  },
+  {
+    "id": "school_minimalist",
+    "name": "\u6781\u7b80\u6d41\u6d3e",
+    "desc": "less is more",
+    "modifiers": {
+      "capacity_discount_tags": [],
+      "capacity_discount_factor": 1.0,
+      "event_severity_offset": 0,
+      "draft_rounds": 8,
+      "repair_count": 2,
+      "joker_slots": 5,
+      "capacity_budget_offset": -30,
+      "baseline_overrides": {},
+      "scoring_overrides": { "cx_as_positive": true }
+    }
+  },
+  {
+    "id": "school_compliance",
+    "name": "\u5408\u89c4\u6d41\u6d3e",
+    "desc": "\u5408\u89c4\u5148\u884c",
+    "modifiers": {
+      "capacity_discount_tags": [],
+      "capacity_discount_factor": 1.0,
+      "event_severity_offset": 0,
+      "draft_rounds": 10,
+      "repair_count": 1,
+      "joker_slots": 3,
+      "capacity_budget_offset": 0,
+      "baseline_overrides": {},
+      "free_components": ["cmp_audit_log", "cmp_encryption"]
+    }
+  },
+  {
+    "id": "school_performance",
+    "name": "\u6027\u80fd\u6d41\u6d3e",
+    "desc": "\u5feb\u5c31\u662f\u6b63\u4e49",
+    "modifiers": {
+      "capacity_discount_tags": ["cache", "cdn", "read_replica", "edge"],
+      "capacity_discount_factor": 0.7,
+      "event_severity_offset": 0,
+      "draft_rounds": 10,
+      "repair_count": 1,
+      "joker_slots": 4,
+      "capacity_budget_offset": 0,
+      "baseline_overrides": { "rel": 1 }
+    }
+  },
+  {
+    "id": "school_vibe_coding",
+    "name": "Vibe Coding \u6d41\u6d3e",
+    "desc": "ship it, vibes only",
+    "modifiers": {
+      "capacity_discount_tags": [],
+      "capacity_discount_factor": 1.0,
+      "event_severity_offset": 0,
+      "draft_rounds": 12,
+      "draft_options": 2,
+      "repair_count": 1,
+      "joker_slots": 5,
+      "tarot_hand_size": 3,
+      "capacity_budget_offset": 0,
+      "baseline_overrides": {},
+      "special_rules": {
+        "start_with_random_joker": true,
+        "start_with_random_tarot": true,
+        "deploy_capacity_discount_chance": 0.3,
+        "deploy_capacity_discount_factor": 0.7,
+        "deploy_extra_risk_chance": 0.2,
+        "deploy_extra_random_risk_count": 1
+      }
+    }
+  }
+]
