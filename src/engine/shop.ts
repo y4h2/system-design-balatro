@@ -132,6 +132,16 @@ export function removeComponent(state: GameState, component: Component): ShopAct
   return { success: true, message: `Removed ${component.name} for ${cost} gold` };
 }
 
+// ── Interest ──
+
+/**
+ * Calculate interest earned: 1 gold per 5 gold held, max 5 interest.
+ * Applied at start of each shop phase.
+ */
+export function calculateInterest(gold: number): number {
+  return Math.min(Math.floor(gold / 5), 5);
+}
+
 // ── Gold reward after phase ──
 
 export function calculatePhaseReward(passed: boolean, blind: 'small' | 'big' | 'boss'): number {

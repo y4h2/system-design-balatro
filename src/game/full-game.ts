@@ -2,7 +2,8 @@ import { loadGameData, type GameData } from '../data/loader.js';
 import { createGameState } from '../engine/state.js';
 import { generateDraftChoices, applyDraftChoice } from '../engine/draft.js';
 import { runPhase } from '../engine/phase-runner.js';
-import { generateShopInventory, calculatePhaseReward } from '../engine/shop.js';
+import { generateShopInventory, calculatePhaseReward, calculateInterest } from '../engine/shop.js';
+import { selectEvents, rollTarotDropFromEvent } from '../engine/event-selection.js';
 import { formatSettlement } from '../ui/explainer.js';
 import {
   renderSchoolInfo,
@@ -42,16 +43,6 @@ import type { GameState } from '../engine/state.js';
 
 async function loadInquirer() {
   return await import('@inquirer/prompts');
-}
-
-/**
- * Select a random event matching the phase's severity range.
- */
-function selectEvent(events: Event[], severityRange: number[]): Event | undefined {
-  const [minSev, maxSev] = severityRange;
-  const eligible = events.filter(e => e.severity >= minSev && e.severity <= maxSev);
-  if (eligible.length === 0) return undefined;
-  return eligible[Math.floor(Math.random() * eligible.length)];
 }
 
 /**
@@ -357,13 +348,9 @@ export async function playFullGame(): Promise<void> {
       console.log('\n  Risk report hidden by boss rule: Blind Review\n');
     }
 
-    // Events: Boss gets 2, others get 1
+    // Events: Boss gets 2, others get 1 (weighted by severity)
     const eventCount = phase.blind === 'boss' ? 2 : 1;
-    const events: Event[] = [];
-    for (let i = 0; i < eventCount; i++) {
-      const evt = selectEvent(data.events, phase.event_pool_severity);
-      if (evt) events.push(evt);
-    }
+    const events = selectEvents(data.events, phase.event_pool_severity, eventCount);
 
     // Show events
     for (const evt of events) {
@@ -469,8 +456,27 @@ export async function playFullGame(): Promise<void> {
     state.gold += reward;
     console.log(`\n  Gold reward: +${reward} (total: ${state.gold})`);
 
+    // Tarot drops from high-severity events
+    for (const evt of events) {
+      if (rollTarotDropFromEvent(evt.severity)) {
+        const shuffled = [...data.tarots].sort(() => Math.random() - 0.5);
+        const drop = shuffled[0];
+        if (drop && state.tarotHand.length < state.tarotHandMax) {
+          state.tarotHand.push(drop);
+          console.log(`\n  Tarot drop! Received ${drop.name} from surviving ${evt.name} (severity ${evt.severity})`);
+        }
+      }
+    }
+
     // Shop (only after Small and Big blinds, not after Boss)
     if (phaseIdx < 2) {
+      // Apply interest before shop
+      const interest = calculateInterest(state.gold);
+      if (interest > 0) {
+        state.gold += interest;
+        console.log(`\n  Interest: +${interest} gold (total: ${state.gold})`);
+      }
+
       const ownedComponentIds = state.componentPool.map(c => c.id);
       const ownedJokerIds = state.jokerSlots.map(j => j.id);
       const inventory = generateShopInventory(
