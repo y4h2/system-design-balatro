@@ -131,18 +131,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { gameState } = get();
     if (!gameState) return;
     const phase = gameState.scenario.phases[gameState.currentPhaseIndex];
-    gameState.phaseResults.push({
-      blind: phase.blind,
-      score: 0,
-      targetScore: phase.target_score,
-      passed: false,
-      skipped: true,
-    });
-    gameState.currentPhaseIndex++;
-    if (gameState.currentPhaseIndex >= 3) {
-      set({ gameState: { ...gameState }, currentScreen: 'gameOver' });
+    const nextPhaseIndex = gameState.currentPhaseIndex + 1;
+    const updated = {
+      ...gameState,
+      currentPhaseIndex: nextPhaseIndex,
+      phaseResults: [...gameState.phaseResults, {
+        blind: phase.blind,
+        score: 0,
+        targetScore: phase.target_score,
+        passed: false,
+        skipped: true,
+      }],
+    };
+    if (nextPhaseIndex >= 3) {
+      set({ gameState: updated, currentScreen: 'gameOver' });
     } else {
-      set({ gameState: { ...gameState }, currentScreen: 'blindSelect' });
+      set({ gameState: updated, currentScreen: 'blindSelect' });
     }
   },
 
@@ -174,74 +178,87 @@ export const useGameStore = create<GameStore>((set, get) => ({
   runCurrentPhase() {
     const { gameState, gameData, selectedForDeploy } = get();
     if (!gameState) return;
-    const phase = gameState.scenario.phases[gameState.currentPhaseIndex];
-    const deployed = gameState.componentPool.filter(c => selectedForDeploy.includes(c.id));
 
-    // Select events
-    const eventCount = phase.blind === 'boss' ? 2 : 1;
-    const events = selectEvents(gameData.events, phase.event_pool_severity, eventCount);
+    try {
+      const phase = gameState.scenario.phases[gameState.currentPhaseIndex];
+      const deployed = gameState.componentPool.filter(c => selectedForDeploy.includes(c.id));
 
-    // Look up boss rule
-    const bossRuleId = phase.boss_rule;
-    const bossRule = bossRuleId
-      ? gameData.bossRules.find(br => br.id === bossRuleId || br.id === `boss_${bossRuleId}`)
-      : undefined;
+      // Select events
+      const eventCount = phase.blind === 'boss' ? 2 : 1;
+      const events = selectEvents(gameData.events, phase.event_pool_severity, eventCount);
 
-    const settlement = runPhase({
-      phase,
-      deployed,
-      school: gameState.school,
-      baseline: getBaseline(gameState.school),
-      jokers: gameState.jokerSlots,
-      patterns: gameData.patterns,
-      superPatterns: gameData.superPatterns,
-      events,
-      bossRule,
-    });
+      // Look up boss rule
+      const bossRuleId = phase.boss_rule;
+      const bossRule = bossRuleId
+        ? gameData.bossRules.find(br => br.id === bossRuleId || br.id === `boss_${bossRuleId}`)
+        : undefined;
 
-    // Record result
-    gameState.phaseResults.push({
-      blind: phase.blind,
-      score: settlement.finalScore,
-      targetScore: settlement.targetScore,
-      passed: settlement.passed,
-      skipped: false,
-    });
+      const settlement = runPhase({
+        phase,
+        deployed,
+        school: gameState.school,
+        baseline: getBaseline(gameState.school),
+        jokers: gameState.jokerSlots,
+        patterns: gameData.patterns,
+        superPatterns: gameData.superPatterns,
+        events,
+        bossRule,
+      });
 
-    // Gold reward
-    const reward = calculatePhaseReward(settlement.passed, phase.blind);
-    gameState.gold += reward;
+      // Record result (clone to avoid mutation issues)
+      const updatedPhaseResults = [...gameState.phaseResults, {
+        blind: phase.blind,
+        score: settlement.finalScore,
+        targetScore: settlement.targetScore,
+        passed: settlement.passed,
+        skipped: false,
+      }];
 
-    // Tarot drops
-    for (const evt of events) {
-      if (rollTarotDropFromEvent(evt.severity)) {
-        const shuffled = [...gameData.tarots].sort(() => Math.random() - 0.5);
-        if (shuffled[0] && gameState.tarotHand.length < gameState.tarotHandMax) {
-          gameState.tarotHand.push(shuffled[0]);
+      // Gold reward
+      const reward = calculatePhaseReward(settlement.passed, phase.blind);
+      const updatedGold = gameState.gold + reward;
+
+      // Tarot drops
+      const updatedTarotHand = [...gameState.tarotHand];
+      for (const evt of events) {
+        if (rollTarotDropFromEvent(evt.severity)) {
+          const shuffled = [...gameData.tarots].sort(() => Math.random() - 0.5);
+          if (shuffled[0] && updatedTarotHand.length < gameState.tarotHandMax) {
+            updatedTarotHand.push(shuffled[0]);
+          }
         }
       }
-    }
 
-    set({
-      gameState: { ...gameState },
-      settlement,
-      currentEvents: events,
-      currentScreen: 'settlement',
-    });
+      set({
+        gameState: {
+          ...gameState,
+          phaseResults: updatedPhaseResults,
+          gold: updatedGold,
+          tarotHand: updatedTarotHand,
+        },
+        settlement,
+        currentEvents: events,
+        currentScreen: 'settlement',
+      });
+    } catch (err) {
+      console.error('[runCurrentPhase] Error:', err);
+    }
   },
 
   continueAfterSettlement() {
     const { gameState } = get();
     if (!gameState) return;
-    gameState.currentPhaseIndex++;
-    if (gameState.currentPhaseIndex >= 3) {
-      set({ gameState: { ...gameState }, currentScreen: 'gameOver' });
+    const nextPhaseIndex = gameState.currentPhaseIndex + 1;
+    const updated = { ...gameState, currentPhaseIndex: nextPhaseIndex };
+    if (nextPhaseIndex >= 3) {
+      set({ gameState: updated, currentScreen: 'gameOver' });
     } else {
       // Shop after Small and Big blinds (phases 0 and 1)
-      if (gameState.currentPhaseIndex <= 2) {
+      if (nextPhaseIndex <= 2) {
+        set({ gameState: updated });
         get().openShop();
       } else {
-        set({ gameState: { ...gameState }, currentScreen: 'blindSelect' });
+        set({ gameState: updated, currentScreen: 'blindSelect' });
       }
     }
   },
@@ -250,7 +267,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { gameState, gameData } = get();
     if (!gameState) return;
     const interest = calculateInterest(gameState.gold);
-    gameState.gold += interest;
     const inventory = generateShopInventory(
       gameData.components,
       gameData.jokers,
@@ -258,7 +274,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameState.componentPool.map(c => c.id),
       gameState.jokerSlots.map(j => j.id),
     );
-    set({ gameState: { ...gameState }, shopInventory: inventory, currentScreen: 'shop' });
+    set({
+      gameState: { ...gameState, gold: gameState.gold + interest },
+      shopInventory: inventory,
+      currentScreen: 'shop',
+    });
   },
 
   shopBuyComponent(component) {
