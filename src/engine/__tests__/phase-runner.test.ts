@@ -66,9 +66,9 @@ describe('phase-runner', () => {
       // Deployed has cache AND cdn -> triggers
       expect(result.triggeredPatterns.map(p => p.id)).toContain('pattern_read_beast');
 
-      // Capacity: CDN=8, Cache=15, SQL=20 = 43, budget = 110 + 20 (startup offset) = 130
+      // Capacity: CDN=8, Cache=15, SQL=18 = 41, budget = 110 + 20 (startup offset) = 130
       // sp_edge_dancer triggers (1 pattern + 5 exposed risks >= 3), refunding 20
-      expect(result.capacityUsed).toBe(23); // 43 - 20 refund
+      expect(result.capacityUsed).toBe(21); // 41 - 20 refund
       expect(result.capacityBudget).toBe(130);
 
       // No events -> no event penalties
@@ -81,7 +81,7 @@ describe('phase-runner', () => {
       // sum: perf=2+2+3+1+1=9, rel=2+0+0+1=3, cx=2+0+1+1=4
       expect(result.panel).toEqual({ perf: 9, rel: 3, cx: 4 });
 
-      // sp_minimalist triggers (1 pattern + 43/130 = 33% <= 60%), flipping cx to positive
+      // sp_minimalist triggers (1 pattern + 41/130 = 31.5% <= 60%), flipping cx to positive
       // Chips = 1.0*9 + 0.6*3 + 0.4*4 = 9 + 1.8 + 1.6 = 12.4
       expect(result.chips).toBeCloseTo(12.4);
 
@@ -425,13 +425,13 @@ describe('phase-runner', () => {
     it('triggers sp_minimalist when patterns + budget usage <= 60%', () => {
       // Need >= 1 pattern + usage <= 60% of budget
       // Use a large budget phase so that CDN+Cache+SQL (43 cost) is < 60%
-      // Budget needs to be > 43/0.6 = ~72
+      // Budget needs to be > 41/0.6 = ~68.3
       const deployed = [comp('cmp_cdn'), comp('cmp_cache'), comp('cmp_sql_db')];
       const startupSchool = school('school_startup');
 
       const bigBudgetPhase: Phase = {
         ...PHASE_SMALL,
-        capacity_budget: 200, // +20 startup offset = 220, 43/220 = ~19.5%
+        capacity_budget: 200, // +20 startup offset = 220, 41/220 = ~18.6%
       };
 
       const input: PhaseInput = {
@@ -843,10 +843,10 @@ describe('phase-runner', () => {
 
       const result = runPhase(input);
 
-      // Base capacity: CDN=8 + Cache=15 + SQL=20 = 43
-      // sp_edge_dancer refunds 20 -> 43 - 20 = 23
+      // Base capacity: CDN=8 + Cache=15 + SQL=18 = 41
+      // sp_edge_dancer refunds 20 -> 41 - 20 = 21
       expect(result.triggeredSuperPatterns.map(sp => sp.id)).toContain('sp_edge_dancer');
-      expect(result.capacityUsed).toBe(23);
+      expect(result.capacityUsed).toBe(21);
       expect(result.superPatternRewards).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ type: 'capacity_refund' }),
@@ -1103,7 +1103,7 @@ describe('phase-runner', () => {
   describe('super pattern reward: dimension_flip (Minimalist)', () => {
     it('makes Cx positive in chips formula when triggered', () => {
       // CDN + Cache + SQL DB with a large budget to trigger sp_minimalist
-      // Budget: 200 + 20 (startup) = 220, usage: 43, 43/220 = ~19.5% <= 60%
+      // Budget: 200 + 20 (startup) = 220, usage: 41, 41/220 = ~18.6% <= 60%
       // Pattern: Read Beast (1 pattern >= 1)
       // -> sp_minimalist triggers: dimension_flip cx
       const deployed = [comp('cmp_cdn'), comp('cmp_cache'), comp('cmp_sql_db')];
@@ -1143,14 +1143,14 @@ describe('phase-runner', () => {
 
     it('does not flip cx when budget usage exceeds 60%', () => {
       // Use a tight budget so sp_minimalist does NOT trigger
-      // CDN(8) + Cache(15) + SQL(20) = 43, budget needs to be < 43/0.6 = ~72
-      // So budget = 50 + 20 = 70, 43/70 = ~61.4% > 60%
+      // CDN(8) + Cache(15) + SQL(18) = 41, budget needs to be < 41/0.6 = ~68.3
+      // So budget = 45 + 20 = 65, 41/65 = ~63.1% > 60%
       const deployed = [comp('cmp_cdn'), comp('cmp_cache'), comp('cmp_sql_db')];
       const startupSchool = school('school_startup');
 
       const tightBudgetPhase: Phase = {
         ...PHASE_SMALL,
-        capacity_budget: 50,
+        capacity_budget: 45,
       };
 
       const input: PhaseInput = {
@@ -1181,7 +1181,7 @@ describe('phase-runner', () => {
 
       const bigBudgetPhase: Phase = {
         ...PHASE_SMALL,
-        capacity_budget: 200, // +(-30) minimalist offset = 170, 43/170 = 25% <= 60%
+        capacity_budget: 200, // +(-30) minimalist offset = 170, 41/170 = 24% <= 60%
       };
 
       const input: PhaseInput = {
