@@ -104,7 +104,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { gameData, gameState } = get();
     if (!gameState) return;
     const options = gameState.school.modifiers.draft_options ?? 3;
-    const choices = generateDraftChoices(gameData.components, options);
+    const ownedIds = new Set(gameState.componentPool.map(c => c.id));
+    const available = gameData.components.filter(c => !ownedIds.has(c.id));
+    const choices = generateDraftChoices(available, options);
     set(s => ({ draftChoices: choices, draftRound: s.draftRound + 1 }));
   },
 

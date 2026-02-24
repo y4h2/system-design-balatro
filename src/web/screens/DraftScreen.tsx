@@ -62,8 +62,8 @@ export default function DraftScreen() {
           Component Pool ({gameState.componentPool.length})
         </h3>
         <div className="flex flex-wrap gap-2">
-          {gameState.componentPool.map(c => (
-            <div key={c.id} className="w-32">
+          {gameState.componentPool.map((c, i) => (
+            <div key={`${c.id}-${i}`} className="w-32">
               <ComponentCard component={c} size="sm" />
             </div>
           ))}
