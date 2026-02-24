@@ -1,4 +1,4 @@
-import type { Component, School, Scenario, Joker } from '../schemas/index.js';
+import type { Component, School, Scenario, Joker, Tarot } from '../schemas/index.js';
 
 // @inquirer/prompts is ESM-only, so we use dynamic import() for CJS compatibility.
 async function loadInquirer() {
@@ -99,4 +99,18 @@ export async function promptRepairAction(
   });
 
   return { action, component };
+}
+
+/**
+ * Prompt the player to use a tarot card (or decline).
+ * Returns the index of the chosen tarot, or null if the player declines.
+ */
+export async function promptUseTarot(tarots: Tarot[]): Promise<number | null> {
+  const { select } = await loadInquirer();
+  const choices = [
+    ...tarots.map((t, i) => ({ name: `${t.name} - ${t.desc}`, value: i })),
+    { name: '不使用塔罗 (Don\'t use tarot)', value: -1 },
+  ];
+  const result = await select({ message: '使用塔罗牌? (Use a Tarot card?)', choices });
+  return result === -1 ? null : result;
 }

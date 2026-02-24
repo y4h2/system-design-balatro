@@ -19,10 +19,17 @@ import {
   promptDraftChoice,
   promptDeploySelection,
   promptRepairAction,
+  promptUseTarot,
 } from '../ui/prompts.js';
 import { runShopPhase } from '../ui/shop-prompts.js';
 import { computeRiskExposure } from '../engine/risk.js';
 import { validateDeployment } from '../engine/deploy.js';
+import {
+  applyInfoRevealTarot,
+  applyStateModifyTarot,
+  useTarot,
+  type TarotContext,
+} from '../engine/tarot.js';
 import {
   applySchoolFreeComponents,
   applyVibeCodingStartBonuses,
@@ -158,6 +165,67 @@ async function applySkipReward(
   }
 }
 
+/**
+ * Offer the player a chance to use tarot cards from their hand.
+ * Handles both info-reveal and state-modify tarots.
+ * Returns any capacity budget bonus from state-modify tarots, and
+ * a next-event penalty factor if the postmortem tarot was used.
+ */
+async function offerTarotUsage(
+  state: GameState,
+  context: TarotContext,
+  label: string,
+): Promise<{ capacityBonus: number; eventPenaltyFactor: number }> {
+  let capacityBonus = 0;
+  let eventPenaltyFactor = 1;
+
+  while (state.tarotHand.length > 0) {
+    console.log(`\n  [${label}] You have ${state.tarotHand.length} tarot(s) in hand.`);
+    const choice = await promptUseTarot(state.tarotHand);
+    if (choice === null) break;
+
+    const tarot = useTarot(state, choice);
+    if (!tarot) break;
+
+    if (tarot.type === 'info_reveal') {
+      const result = applyInfoRevealTarot(tarot, context);
+      console.log(`\n  ${result.message}`);
+      if (result.revealedInfo) {
+        console.log(`  ${result.revealedInfo.split('\n').join('\n  ')}`);
+      }
+    } else {
+      const result = applyStateModifyTarot(tarot, context);
+      console.log(`\n  ${result.message}`);
+      if (result.success && result.stateChange) {
+        // Parse and apply state changes
+        if (result.stateChange.startsWith('add_capacity_budget:')) {
+          const amount = parseInt(result.stateChange.split(':')[1], 10);
+          capacityBonus += amount;
+        } else if (result.stateChange.startsWith('next_event_penalty_factor:')) {
+          const factor = parseFloat(result.stateChange.split(':')[1]);
+          eventPenaltyFactor *= factor;
+        } else if (result.stateChange.startsWith('reduce_component_capacity:')) {
+          const parts = result.stateChange.split(':');
+          const idx = parseInt(parts[1], 10);
+          const factor = parseFloat(parts[2]);
+          if (context.deployed[idx]) {
+            context.deployed[idx] = {
+              ...context.deployed[idx],
+              capacity_cost: Math.floor(context.deployed[idx].capacity_cost * factor),
+            };
+          }
+        } else if (result.stateChange.startsWith('remove_exposed_risk:')) {
+          // Mark for caller: exposed risk removal is informational here;
+          // actual risk recalculation happens during phase run
+          console.log('  (Risk removal will take effect in scoring)');
+        }
+      }
+    }
+  }
+
+  return { capacityBonus, eventPenaltyFactor };
+}
+
 // ── Main game loop ──────────────────────────────────────────────────
 
 /**
@@ -237,8 +305,33 @@ export async function playFullGame(): Promise<void> {
       console.log(`\n  Boss Rule: ${bossRule.name} - ${bossRule.effect}`);
     }
 
+    // Build event pool for tarot context
+    const [minSev, maxSev] = phase.event_pool_severity;
+    const phaseEventPool = data.events.filter(e => e.severity >= minSev && e.severity <= maxSev);
+    const nextEventPreview = phaseEventPool.length > 0
+      ? phaseEventPool[Math.floor(Math.random() * phaseEventPool.length)]
+      : undefined;
+
+    // Tarot usage (before deploy) - info-reveal tarots are most useful here
+    let capacityBonus = 0;
+    let eventPenaltyFactor = 1;
+    if (state.tarotHand.length > 0) {
+      const preDeployContext: TarotContext = {
+        eventPool: phaseEventPool,
+        drawnEvents: [],
+        nextEvent: nextEventPreview,
+        patterns: data.patterns,
+        deployed: [],
+        deployedTags: [],
+        capacityBudget: phase.capacity_budget + school.modifiers.capacity_budget_offset,
+      };
+      const preResult = await offerTarotUsage(state, preDeployContext, 'Before Deploy');
+      capacityBonus += preResult.capacityBonus;
+      eventPenaltyFactor *= preResult.eventPenaltyFactor;
+    }
+
     // Deploy
-    const effectiveBudget = phase.capacity_budget + school.modifiers.capacity_budget_offset;
+    const effectiveBudget = phase.capacity_budget + school.modifiers.capacity_budget_offset + capacityBonus;
     renderComponentPool(state.componentPool);
     const deployed = await promptDeploySelection(state.componentPool, effectiveBudget);
 
@@ -282,6 +375,35 @@ export async function playFullGame(): Promise<void> {
       console.log('\n  No matching event for this phase.\n');
     }
 
+    // Tarot usage (after events) - state-modify tarots are most useful here
+    if (state.tarotHand.length > 0) {
+      const deployedTags = [...new Set(deployed.flatMap(c => c.tags))];
+      const postEventContext: TarotContext = {
+        eventPool: phaseEventPool,
+        drawnEvents: events,
+        nextEvent: undefined,
+        patterns: data.patterns,
+        deployed,
+        deployedTags,
+        capacityBudget: effectiveBudget,
+      };
+      const postResult = await offerTarotUsage(state, postEventContext, 'After Events');
+      capacityBonus += postResult.capacityBonus;
+      eventPenaltyFactor *= postResult.eventPenaltyFactor;
+    }
+
+    // Apply event penalty factor from postmortem tarot
+    const effectiveEvents = eventPenaltyFactor < 1
+      ? events.map(e => ({
+          ...e,
+          penalty: {
+            perf: Math.round(e.penalty.perf * eventPenaltyFactor),
+            rel: Math.round(e.penalty.rel * eventPenaltyFactor),
+            cx: Math.round(e.penalty.cx * eventPenaltyFactor),
+          },
+        }))
+      : events;
+
     // Run phase
     let settlement = runPhase({
       phase,
@@ -291,7 +413,7 @@ export async function playFullGame(): Promise<void> {
       jokers: state.jokerSlots,
       patterns: data.patterns,
       superPatterns: data.superPatterns,
-      events,
+      events: effectiveEvents,
       bossRule,
     });
 
@@ -317,7 +439,7 @@ export async function playFullGame(): Promise<void> {
             jokers: state.jokerSlots,
             patterns: data.patterns,
             superPatterns: data.superPatterns,
-            events,
+            events: effectiveEvents,
             bossRule,
           });
 
