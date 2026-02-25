@@ -24,7 +24,7 @@ import { computeJokerChipBonus, computeJokerMultAdd, getJokerMultipliers, comput
 import { validateConstraints } from '../../engine/constraints.js';
 import { applyTarot } from '../../engine/tarot.js';
 import type { Component, Joker, Tarot, School, Phase } from '../../schemas/index.js';
-import type { Screen } from './types.js';
+import { MAX_DEPLOY_SLOTS, type Screen } from './types.js';
 
 function getBaseline(school: School): Panel {
   const ov = (school.modifiers.baseline_overrides ?? {}) as Record<string, number>;
@@ -162,7 +162,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set(s => {
       const selected = s.selectedForDeploy.includes(componentId)
         ? s.selectedForDeploy.filter(id => id !== componentId)
-        : [...s.selectedForDeploy, componentId];
+        : s.selectedForDeploy.length < MAX_DEPLOY_SLOTS
+          ? [...s.selectedForDeploy, componentId]
+          : s.selectedForDeploy;
       return { selectedForDeploy: selected };
     });
     setTimeout(() => get().updatePreview(), 0);

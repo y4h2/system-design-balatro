@@ -5,9 +5,10 @@ import DraggableCard from './DraggableCard';
 interface HandZoneProps {
   cards: Component[];
   onToggleDeploy: (componentId: string) => void;
+  deployFull?: boolean;
 }
 
-export default function HandZone({ cards, onToggleDeploy }: HandZoneProps) {
+export default function HandZone({ cards, onToggleDeploy, deployFull }: HandZoneProps) {
   const { setNodeRef, isOver } = useDroppable({ id: 'hand-zone' });
 
   return (
@@ -20,7 +21,7 @@ export default function HandZone({ cards, onToggleDeploy }: HandZoneProps) {
       </div>
       <div className="flex flex-wrap gap-3 max-h-[40vh] overflow-y-auto">
         {cards.map(c => (
-          <div key={c.id} className="w-36 sm:w-40 md:w-44">
+          <div key={c.id} className={`w-36 sm:w-40 md:w-44 transition-opacity ${deployFull ? 'opacity-40 pointer-events-none' : ''}`}>
             <DraggableCard
               component={c}
               source="hand"

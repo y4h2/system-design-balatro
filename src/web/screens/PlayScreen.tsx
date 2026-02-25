@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
 import { useGameStore } from '../store/gameStore';
+import { MAX_DEPLOY_SLOTS } from '../store/types';
 import TopBar from '../components/TopBar';
 import DeployZone from '../components/DeployZone';
 import HandZone from '../components/HandZone';
@@ -122,6 +123,29 @@ export default function PlayScreen() {
             )}
           </div>
 
+          {/* Deploy slots */}
+          <div className="bg-[var(--color-surface)] rounded-lg p-3">
+            <div className="text-xs text-[var(--color-text-muted)] mb-1">Deploy Slots</div>
+            <div className="font-display text-sm">
+              <span className={selectedForDeploy.length >= MAX_DEPLOY_SLOTS ? 'text-amber-400' : 'text-white'}>
+                {selectedForDeploy.length}
+              </span>
+              <span className="text-[var(--color-text-muted)]"> / {MAX_DEPLOY_SLOTS}</span>
+            </div>
+            <div className="w-full h-1.5 bg-white/10 rounded-full mt-2 overflow-hidden">
+              <motion.div
+                className={`h-full rounded-full ${selectedForDeploy.length >= MAX_DEPLOY_SLOTS ? 'bg-amber-400' : 'bg-[var(--color-functional)]'}`}
+                animate={{ width: `${(selectedForDeploy.length / MAX_DEPLOY_SLOTS) * 100}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+            {selectedForDeploy.length >= MAX_DEPLOY_SLOTS && (
+              <div className="text-[11px] text-amber-400 mt-1">
+                Slots full — undeploy to swap
+              </div>
+            )}
+          </div>
+
           {/* Hand info */}
           <div className="bg-[var(--color-surface)] rounded-lg p-3 space-y-2">
             <div className="flex justify-between items-center">
@@ -197,6 +221,7 @@ export default function PlayScreen() {
               <HandZone
                 cards={handCards}
                 onToggleDeploy={(id) => toggleDeploy(id)}
+                deployFull={selectedForDeploy.length >= MAX_DEPLOY_SLOTS}
               />
             </div>
 
