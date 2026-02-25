@@ -5,6 +5,7 @@ import { generateDraftChoices, applyDraftChoice } from '../../engine/draft.js';
 import { runPhase, type PhaseSettlement } from '../../engine/phase-runner.js';
 import { validateDeployment } from '../../engine/deploy.js';
 import { computeRiskExposure, type RiskReport } from '../../engine/risk.js';
+import { dealHand, discardAndDraw, type HandState } from '../../engine/hand.js';
 import { selectEvents, rollTarotDropFromEvent } from '../../engine/event-selection.js';
 import {
   generateShopInventory,
@@ -40,7 +41,9 @@ interface GameStore {
   draftChoices: Component[];
 
   // ── Play ──
+  handState: HandState | null;
   selectedForDeploy: string[]; // component IDs toggled for deploy
+  selectedForDiscard: string[]; // component IDs selected for discard
   riskPreview: RiskReport | null;
   patternPreview: string[];    // triggered pattern names
   currentEvents: Event[];
@@ -58,6 +61,8 @@ interface GameStore {
   skipBlind(): void;
   startPlay(): void;
   toggleDeploy(componentId: string): void;
+  toggleDiscard(componentId: string): void;
+  executeDiscard(): void;
   updatePreview(): void;
   runCurrentPhase(): void;
 
@@ -80,7 +85,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentScreen: 'title',
   draftRound: 0,
   draftChoices: [],
+  handState: null,
   selectedForDeploy: [],
+  selectedForDiscard: [],
   riskPreview: null,
   patternPreview: [],
   currentEvents: [],
@@ -151,7 +158,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   startPlay() {
-    set({ currentScreen: 'play', selectedForDeploy: [], riskPreview: null, patternPreview: [], settlement: null });
+    const { gameState } = get();
+    if (!gameState) return;
+    const handState = dealHand(gameState.componentPool);
+    set({
+      currentScreen: 'play',
+      handState,
+      selectedForDeploy: [],
+      selectedForDiscard: [],
+      riskPreview: null,
+      patternPreview: [],
+      settlement: null,
+    });
   },
 
   toggleDeploy(componentId) {
@@ -165,10 +183,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
     setTimeout(() => get().updatePreview(), 0);
   },
 
+  toggleDiscard(componentId) {
+    set(s => {
+      const selected = s.selectedForDiscard.includes(componentId)
+        ? s.selectedForDiscard.filter(id => id !== componentId)
+        : s.selectedForDiscard.length < 5
+          ? [...s.selectedForDiscard, componentId]
+          : s.selectedForDiscard; // max 5
+      return { selectedForDiscard: selected };
+    });
+  },
+
+  executeDiscard() {
+    const { handState, selectedForDiscard } = get();
+    if (!handState || selectedForDiscard.length === 0) return;
+    const newHandState = discardAndDraw(handState, selectedForDiscard);
+    set({
+      handState: newHandState,
+      selectedForDiscard: [],
+      selectedForDeploy: [], // reset deploy selections
+    });
+  },
+
   updatePreview() {
-    const { gameState, gameData, selectedForDeploy } = get();
+    const { gameState, gameData, selectedForDeploy, handState } = get();
     if (!gameState) return;
-    const deployed = gameState.componentPool.filter(c => selectedForDeploy.includes(c.id));
+    const deployed = handState?.hand.filter(c => selectedForDeploy.includes(c.id)) ?? [];
     const riskPreview = computeRiskExposure(deployed);
     const deployedTags = [...new Set(deployed.flatMap(c => c.tags))];
     const patternPreview = detectPatterns(deployedTags, gameData.patterns).map(p => p.name);
@@ -181,7 +221,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     try {
       const phase = gameState.scenario.phases[gameState.currentPhaseIndex];
-      const deployed = gameState.componentPool.filter(c => selectedForDeploy.includes(c.id));
+      const { handState } = get();
+      const deployed = handState?.hand.filter(c => selectedForDeploy.includes(c.id)) ?? [];
 
       // Select events
       const eventCount = phase.blind === 'boss' ? 2 : 1;
