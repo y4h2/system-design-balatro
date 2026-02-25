@@ -1,7 +1,5 @@
 import chalk from 'chalk';
-import type { Scenario, Phase, School, Component, Joker } from '../schemas/index.js';
-import type { GameState } from '../engine/state.js';
-import type { RiskReport } from '../engine/risk.js';
+import type { Scenario, Phase, School, Component } from '../schemas/index.js';
 
 const DIVIDER = chalk.gray('─'.repeat(50));
 const SECTION_DIVIDER = chalk.gray('═'.repeat(50));
@@ -14,6 +12,19 @@ function signedNum(n: number): string {
 
 function formatDelta(delta: { perf: number; rel: number; cx: number }): string {
   return `perf:${signedNum(delta.perf)} rel:${signedNum(delta.rel)} cx:${signedNum(delta.cx)}`;
+}
+
+const DOMAIN_COLORS: Record<string, (s: string) => string> = {
+  compute: chalk.blue,
+  data: chalk.green,
+  network: chalk.yellow,
+  defense: chalk.magenta,
+  platform: chalk.cyan,
+};
+
+function domainBadge(domain: string): string {
+  const colorFn = DOMAIN_COLORS[domain] ?? chalk.white;
+  return colorFn(`[${domain}]`);
 }
 
 function blindLabel(blind: 'small' | 'big' | 'boss'): string {
@@ -41,7 +52,19 @@ export function renderScenarioOverview(scenario: Scenario): void {
     console.log(chalk.gray(`  ── Phase ${i + 1}: ${blindLabel(phase.blind)} ──`));
     console.log(chalk.white(`     ${phase.subtitle}`));
     console.log(chalk.white(`     目标分数 (Target): ${chalk.yellow(String(phase.target_score))}  容量预算 (Capacity): ${chalk.yellow(String(phase.capacity_budget))}`));
-    console.log(chalk.white(`     权重 (Weights): perf=${phase.weights.perf} rel=${phase.weights.rel} cx=${phase.weights.cx}`));
+
+    // Constraints
+    const c = phase.constraints;
+    const parts: string[] = [];
+    if (c.min_perf !== undefined) parts.push(`P>=${c.min_perf}`);
+    if (c.min_rel !== undefined) parts.push(`R>=${c.min_rel}`);
+    if (c.max_cx !== undefined) parts.push(`CX<=${c.max_cx}`);
+    if (c.min_domains !== undefined) parts.push(`${c.min_domains}+ domains`);
+    if (c.required_tags?.length) parts.push(`need: ${c.required_tags.join(',')}`);
+    if (parts.length > 0) {
+      console.log(chalk.white(`     约束 (Constraints): ${parts.join(' | ')} (penalty: ${c.constraint_penalty})`));
+    }
+
     if (phase.boss_rule) {
       console.log(chalk.red(`     Boss规则: ${phase.boss_rule}`));
     }
@@ -62,17 +85,15 @@ export function renderPhaseInfo(phase: Phase, phaseIndex: number): void {
   console.log(DIVIDER);
   console.log(chalk.white(`  目标分数 (Target Score): ${chalk.yellow.bold(String(phase.target_score))}`));
   console.log(chalk.white(`  容量预算 (Capacity Budget): ${chalk.yellow(String(phase.capacity_budget))}`));
-  console.log(chalk.white(`  权重 (Weights): perf=${phase.weights.perf} rel=${phase.weights.rel} cx=${phase.weights.cx}`));
   console.log();
   console.log(chalk.white(`  约束 (Constraints):`));
-  console.log(chalk.white(`    SLA: ${phase.constraints.sla}`));
-  console.log(chalk.white(`    合规等级 (Compliance): ${phase.constraints.compliance_level}`));
-  if (phase.constraints.budget_cost_max !== undefined) {
-    console.log(chalk.white(`    最大预算成本 (Max Budget): ${phase.constraints.budget_cost_max}`));
-  }
-  if (phase.constraints.delivery_weeks_max !== undefined) {
-    console.log(chalk.white(`    最大交付周数 (Max Weeks): ${phase.constraints.delivery_weeks_max}`));
-  }
+  const c = phase.constraints;
+  if (c.min_perf !== undefined) console.log(chalk.white(`    P >= ${c.min_perf}`));
+  if (c.min_rel !== undefined) console.log(chalk.white(`    R >= ${c.min_rel}`));
+  if (c.max_cx !== undefined) console.log(chalk.white(`    CX <= ${c.max_cx}`));
+  if (c.min_domains !== undefined) console.log(chalk.white(`    ${c.min_domains}+ different domains`));
+  if (c.required_tags?.length) console.log(chalk.white(`    Required tags: ${c.required_tags.join(', ')}`));
+  console.log(chalk.white(`    Penalty per failure: ${c.constraint_penalty}`));
   if (phase.boss_rule) {
     console.log(chalk.red.bold(`  Boss规则 (Boss Rule): ${phase.boss_rule}`));
   }
@@ -99,7 +120,6 @@ export function renderSchoolInfo(school: School): void {
     console.log(chalk.white(`    塔罗手牌 (Tarot Hand): ${m.tarot_hand_size}`));
   }
   console.log(chalk.white(`    容量预算偏移 (Capacity Offset): ${signedNum(m.capacity_budget_offset)}`));
-  console.log(chalk.white(`    事件严重度偏移 (Event Severity Offset): ${signedNum(m.event_severity_offset)}`));
   if (m.capacity_discount_tags.length > 0) {
     console.log(chalk.white(`    容量折扣标签 (Discount Tags): ${m.capacity_discount_tags.join(', ')} (x${m.capacity_discount_factor})`));
   }
@@ -119,15 +139,8 @@ export function renderComponentPool(pool: Component[]): void {
 
   for (const c of pool) {
     const rarityColor = c.rarity === 'rare' ? chalk.yellow : c.rarity === 'uncommon' ? chalk.cyan : chalk.white;
-    const categoryBadge = c.category === 'defensive' ? chalk.blue('[防御]') : chalk.green('[功能]');
-    console.log(`  ${rarityColor(c.name)} ${categoryBadge} ${chalk.gray(`[${c.tags.join(',')}]`)}`);
+    console.log(`  ${rarityColor(c.name)} ${domainBadge(c.domain)} ${chalk.gray(`[${c.tags.join(',')}]`)} chips:${chalk.yellow(String(c.base_chips))}`);
     console.log(`    ${formatDelta(c.delta)} | 容量:${chalk.yellow(String(c.capacity_cost))}`);
-    if (c.exposes.length > 0) {
-      console.log(`    ${chalk.red(`暴露风险: ${c.exposes.join(', ')}`)}`);
-    }
-    if (c.seals.length > 0) {
-      console.log(`    ${chalk.green(`封堵风险: ${c.seals.join(', ')}`)}`);
-    }
   }
   console.log(DIVIDER);
 }
@@ -145,8 +158,7 @@ export function renderDeployment(deployed: Component[], capacity: number, budget
     console.log(chalk.gray('  (无已部署组件)'));
   } else {
     for (const c of deployed) {
-      const categoryBadge = c.category === 'defensive' ? chalk.blue('[防御]') : chalk.green('[功能]');
-      console.log(`  ${chalk.white(c.name)} ${categoryBadge} ${chalk.gray(`[${c.tags.join(',')}]`)}`);
+      console.log(`  ${chalk.white(c.name)} ${domainBadge(c.domain)} ${chalk.gray(`[${c.tags.join(',')}]`)} chips:${chalk.yellow(String(c.base_chips))}`);
       console.log(`    ${formatDelta(c.delta)} | 容量:${chalk.yellow(String(c.capacity_cost))}`);
     }
   }
@@ -163,32 +175,21 @@ export function renderDeployment(deployed: Component[], capacity: number, budget
     );
     console.log();
     console.log(chalk.bold(`  合计面板增量 (Total Delta): ${formatDelta(totalDelta)}`));
+    const totalChips = deployed.reduce((sum, c) => sum + c.base_chips, 0);
+    console.log(chalk.bold(`  合计基础 Chips: ${chalk.yellow(String(totalChips))}`));
   }
   console.log(DIVIDER);
 }
 
 /**
- * Display the risk report.
+ * Display triggered patterns.
  */
-export function renderRiskReport(
-  report: RiskReport,
+export function renderPatterns(
   triggeredPatterns: string[],
   superPatternHints: string[],
 ): void {
   console.log(DIVIDER);
-  console.log(chalk.bold.white('  风险报告 (Risk Report)'));
-  console.log();
-
-  if (report.exposed.length > 0) {
-    console.log(chalk.red(`  暴露风险 (Exposed Risks): ${report.exposed.join(', ')}`));
-  } else {
-    console.log(chalk.green('  暴露风险 (Exposed Risks): 无 (None)'));
-  }
-
-  if (report.sealed.length > 0) {
-    console.log(chalk.green(`  已封堵风险 (Sealed Risks): ${report.sealed.join(', ')}`));
-  }
-
+  console.log(chalk.bold.white('  牌型触发 (Patterns)'));
   console.log();
 
   if (triggeredPatterns.length > 0) {
@@ -222,15 +223,8 @@ export function renderDraftChoices(choices: Component[], round: number, total: n
   for (let i = 0; i < choices.length; i++) {
     const c = choices[i];
     const rarityColor = c.rarity === 'rare' ? chalk.yellow : c.rarity === 'uncommon' ? chalk.cyan : chalk.white;
-    const categoryBadge = c.category === 'defensive' ? chalk.blue('[防御]') : chalk.green('[功能]');
-    console.log(`  ${chalk.bold(String(i + 1))}. ${rarityColor(c.name)} ${categoryBadge} ${chalk.gray(`[${c.tags.join(',')}]`)}`);
+    console.log(`  ${chalk.bold(String(i + 1))}. ${rarityColor(c.name)} ${domainBadge(c.domain)} ${chalk.gray(`[${c.tags.join(',')}]`)} chips:${chalk.yellow(String(c.base_chips))}`);
     console.log(`     ${formatDelta(c.delta)} | 容量:${chalk.yellow(String(c.capacity_cost))}`);
-    if (c.exposes.length > 0) {
-      console.log(`     ${chalk.red(`暴露: ${c.exposes.join(', ')}`)}`);
-    }
-    if (c.seals.length > 0) {
-      console.log(`     ${chalk.green(`封堵: ${c.seals.join(', ')}`)}`);
-    }
     console.log(chalk.gray(`     ${c.desc}`));
   }
   console.log(DIVIDER);

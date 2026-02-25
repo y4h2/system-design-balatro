@@ -15,23 +15,25 @@ const rarityClass: Record<string, string> = {
   rare: 'card-rare',
 };
 
-const categoryDot: Record<string, string> = {
-  functional: 'bg-[var(--color-functional)]',
-  defensive: 'bg-[var(--color-defensive)]',
+const domainColors: Record<string, string> = {
+  compute: '#3b82f6',   // blue
+  data: '#22c55e',      // green
+  network: '#f59e0b',   // amber
+  defense: '#ef4444',   // red
+  platform: '#a855f7',  // purple
 };
 
-function DeltaValue({ value, label, color }: { value: number; label: string; color: string }) {
-  if (value === 0) return null;
-  const sign = value > 0 ? '+' : '';
-  return (
-    <span className={`font-display text-xs ${color}`}>
-      {label} {sign}{value}
-    </span>
-  );
-}
+const domainLabels: Record<string, string> = {
+  compute: 'COMPUTE',
+  data: 'DATA',
+  network: 'NETWORK',
+  defense: 'DEFENSE',
+  platform: 'PLATFORM',
+};
 
 export default function ComponentCard({ component, selected, onClick, size = 'md', showPrice }: ComponentCardProps) {
   const isSmall = size === 'sm';
+  const domainColor = domainColors[component.domain] ?? '#888';
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.key === 'Enter' || e.key === ' ') && onClick) {
       e.preventDefault();
@@ -48,10 +50,9 @@ export default function ComponentCard({ component, selected, onClick, size = 'md
       role="button"
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.97 }}
-      layout
     >
-      {/* Category accent stripe */}
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${component.category === 'functional' ? 'bg-[var(--color-functional)]' : 'bg-[var(--color-defensive)]'}`} />
+      {/* Domain accent stripe */}
+      <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: domainColor }} />
 
       {/* Deployed checkmark badge */}
       {selected && (
@@ -62,9 +63,14 @@ export default function ComponentCard({ component, selected, onClick, size = 'md
 
       {/* Card content with left padding for stripe */}
       <div className="pl-2">
-        {/* Header: name + category dot */}
+        {/* Header: domain badge + name */}
         <div className="flex items-center gap-2 mb-1">
-          <div className={`w-2 h-2 rounded-full ${categoryDot[component.category]}`} aria-hidden="true" />
+          <span
+            className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide"
+            style={{ backgroundColor: domainColor + '30', color: domainColor }}
+          >
+            {domainLabels[component.domain] ?? component.domain}
+          </span>
           <span className={`font-medium truncate ${isSmall ? 'text-xs' : 'text-sm'}`}>{component.name}</span>
         </div>
 
@@ -80,9 +86,12 @@ export default function ComponentCard({ component, selected, onClick, size = 'md
           )}
         </div>
 
-        {/* Delta values */}
+        {/* Base chips + Delta values */}
         {!isSmall && (
-          <div className="flex gap-3 mb-2">
+          <div className="flex gap-3 mb-2 items-center">
+            <span className="font-display text-xs neon-chips">
+              +{component.base_chips} chips
+            </span>
             <DeltaValue value={component.delta.perf} label="P" color="text-[var(--color-perf)]" />
             <DeltaValue value={component.delta.rel} label="R" color="text-[var(--color-rel)]" />
             <DeltaValue value={component.delta.cx} label="X" color="text-[var(--color-cx)]" />
@@ -100,5 +109,15 @@ export default function ComponentCard({ component, selected, onClick, size = 'md
         </div>
       </div>
     </motion.div>
+  );
+}
+
+function DeltaValue({ value, label, color }: { value: number; label: string; color: string }) {
+  if (value === 0) return null;
+  const sign = value > 0 ? '+' : '';
+  return (
+    <span className={`font-display text-xs ${color}`}>
+      {label} {sign}{value}
+    </span>
   );
 }

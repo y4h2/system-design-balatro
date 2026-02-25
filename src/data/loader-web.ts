@@ -3,7 +3,6 @@ import {
   ComponentSchema,
   ScenarioSchema,
   JokerSchema,
-  EventSchema,
   PatternSchema,
   SuperPatternSchema,
   SchoolSchema,
@@ -14,7 +13,6 @@ import {
 import componentsJson from '../../gamedata/components.json';
 import scenariosJson from '../../gamedata/scenarios.json';
 import jokersJson from '../../gamedata/jokers.json';
-import eventsJson from '../../gamedata/events.json';
 import patternsJson from '../../gamedata/patterns.json';
 import superPatternsJson from '../../gamedata/super_patterns.json';
 import schoolsJson from '../../gamedata/schools.json';
@@ -33,7 +31,6 @@ export function loadGameDataWeb() {
     components: parseArray(componentsJson, ComponentSchema),
     scenarios: parseArray(scenariosJson, ScenarioSchema),
     jokers: parseArray(jokersJson, JokerSchema),
-    events: parseArray(eventsJson, EventSchema),
     patterns: parseArray(patternsJson, PatternSchema),
     superPatterns: parseArray(superPatternsJson, SuperPatternSchema),
     schools: parseArray(schoolsJson, SchoolSchema),

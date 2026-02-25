@@ -10,123 +10,125 @@ describe('deploy + capacity system', () => {
 
   describe('getEffectiveCapacityCost', () => {
     it('applies school discount for matching tags (SRE school)', () => {
-      // SRE discount tags: multi_az, health_check, circuit_breaker, failover
-      // SRE discount factor: 0.7
+      // SRE discount tags: ["ha"], factor: 0.7
       const multiAz = data.components.find(c => c.id === 'cmp_multi_az')!;
-      expect(multiAz.capacity_cost).toBe(22);
-      // 22 * 0.7 = 15.4 -> ceil -> 16
-      expect(getEffectiveCapacityCost(multiAz, sreSchool.modifiers)).toBe(16);
+      expect(multiAz.capacity_cost).toBe(16);
+      expect(multiAz.tags).toContain('ha');
+      // 16 * 0.7 = 11.2 -> ceil -> 12
+      expect(getEffectiveCapacityCost(multiAz, sreSchool.modifiers)).toBe(12);
 
       const healthCheck = data.components.find(c => c.id === 'cmp_health_check')!;
-      expect(healthCheck.capacity_cost).toBe(5);
-      // 5 * 0.7 = 3.5 -> ceil -> 4
-      expect(getEffectiveCapacityCost(healthCheck, sreSchool.modifiers)).toBe(4);
+      expect(healthCheck.capacity_cost).toBe(4);
+      // 4 * 0.7 = 2.8 -> ceil -> 3
+      expect(getEffectiveCapacityCost(healthCheck, sreSchool.modifiers)).toBe(3);
 
       const circuitBreaker = data.components.find(c => c.id === 'cmp_circuit_breaker')!;
-      expect(circuitBreaker.capacity_cost).toBe(8);
-      // 8 * 0.7 = 5.6 -> ceil -> 6
-      expect(getEffectiveCapacityCost(circuitBreaker, sreSchool.modifiers)).toBe(6);
+      expect(circuitBreaker.capacity_cost).toBe(7);
+      // 7 * 0.7 = 4.9 -> ceil -> 5
+      expect(getEffectiveCapacityCost(circuitBreaker, sreSchool.modifiers)).toBe(5);
 
       const failover = data.components.find(c => c.id === 'cmp_failover')!;
-      expect(failover.capacity_cost).toBe(18);
-      // 18 * 0.7 = 12.6 -> ceil -> 13
-      expect(getEffectiveCapacityCost(failover, sreSchool.modifiers)).toBe(13);
+      expect(failover.capacity_cost).toBe(14);
+      // 14 * 0.7 = 9.8 -> ceil -> 10
+      expect(getEffectiveCapacityCost(failover, sreSchool.modifiers)).toBe(10);
     });
 
     it('applies school discount for matching tags (Performance school)', () => {
-      // Performance discount tags: cache, cdn, read_replica, edge
-      // Performance discount factor: 0.7
-      const cdn = data.components.find(c => c.id === 'cmp_cdn')!;
-      // cdn has tags: ["cdn", "edge"] - both match
-      expect(cdn.capacity_cost).toBe(8);
-      // 8 * 0.7 = 5.6 -> ceil -> 6
-      expect(getEffectiveCapacityCost(cdn, performanceSchool.modifiers)).toBe(6);
+      // Performance discount tags: ["cache", "edge"], factor: 0.7
+      const redis = data.components.find(c => c.id === 'cmp_redis')!;
+      expect(redis.tags).toContain('cache');
+      expect(redis.capacity_cost).toBe(10);
+      // 10 * 0.7 = 7 -> ceil -> 7
+      expect(getEffectiveCapacityCost(redis, performanceSchool.modifiers)).toBe(7);
 
-      const cache = data.components.find(c => c.id === 'cmp_cache')!;
-      expect(cache.capacity_cost).toBe(15);
-      // 15 * 0.7 = 10.5 -> ceil -> 11
-      expect(getEffectiveCapacityCost(cache, performanceSchool.modifiers)).toBe(11);
+      const cloudfront = data.components.find(c => c.id === 'cmp_cloudfront')!;
+      expect(cloudfront.tags).toContain('edge');
+      expect(cloudfront.capacity_cost).toBe(10);
+      // 10 * 0.7 = 7
+      expect(getEffectiveCapacityCost(cloudfront, performanceSchool.modifiers)).toBe(7);
 
-      const readReplica = data.components.find(c => c.id === 'cmp_read_replica')!;
-      expect(readReplica.capacity_cost).toBe(14);
-      // 14 * 0.7 = 9.8 -> ceil -> 10
-      expect(getEffectiveCapacityCost(readReplica, performanceSchool.modifiers)).toBe(10);
+      const memcached = data.components.find(c => c.id === 'cmp_memcached')!;
+      expect(memcached.tags).toContain('cache');
+      expect(memcached.capacity_cost).toBe(6);
+      // 6 * 0.7 = 4.2 -> ceil -> 5
+      expect(getEffectiveCapacityCost(memcached, performanceSchool.modifiers)).toBe(5);
     });
 
     it('returns original cost for non-matching tags', () => {
-      // API Gateway has tag "gateway" which is NOT in SRE discount tags
-      const apiGw = data.components.find(c => c.id === 'cmp_api_gw')!;
-      expect(getEffectiveCapacityCost(apiGw, sreSchool.modifiers)).toBe(10);
+      // Nginx has tag "gateway" which is NOT in SRE discount tags
+      const nginx = data.components.find(c => c.id === 'cmp_nginx')!;
+      expect(nginx.tags).not.toContain('ha');
+      expect(getEffectiveCapacityCost(nginx, sreSchool.modifiers)).toBe(nginx.capacity_cost);
 
-      // SQL DB has tags ["db", "sql", "primary_db"] - not in SRE discount tags
-      const sqlDb = data.components.find(c => c.id === 'cmp_sql_db')!;
-      expect(getEffectiveCapacityCost(sqlDb, sreSchool.modifiers)).toBe(18);
+      // PostgreSQL has tag "db" - not in SRE discount tags
+      const pg = data.components.find(c => c.id === 'cmp_postgresql')!;
+      expect(pg.tags).not.toContain('ha');
+      expect(getEffectiveCapacityCost(pg, sreSchool.modifiers)).toBe(pg.capacity_cost);
 
       // Startup school has no discount tags, so everything is full cost
       const multiAz = data.components.find(c => c.id === 'cmp_multi_az')!;
-      expect(getEffectiveCapacityCost(multiAz, startupSchool.modifiers)).toBe(22);
+      expect(getEffectiveCapacityCost(multiAz, startupSchool.modifiers)).toBe(16);
     });
   });
 
   describe('validateDeployment', () => {
     it('calculates correct total and reports not over budget when within limits', () => {
-      // Pick a few small components: health_check (5), rate_limiter (6), feature_flag (5)
-      const healthCheck = data.components.find(c => c.id === 'cmp_health_check')!;
-      const rateLimiter = data.components.find(c => c.id === 'cmp_rate_limit')!;
-      const featureFlag = data.components.find(c => c.id === 'cmp_feature_flag')!;
+      const healthCheck = data.components.find(c => c.id === 'cmp_health_check')!; // 4
+      const nginx = data.components.find(c => c.id === 'cmp_nginx')!; // 6
+      const featureFlag = data.components.find(c => c.id === 'cmp_feature_flag')!; // 4
 
-      const components = [healthCheck, rateLimiter, featureFlag];
-      // With startup school (no discounts): 5 + 6 + 5 = 16
+      const components = [healthCheck, nginx, featureFlag];
+      // With startup school (no discounts): 4 + 6 + 4 = 14
       const budget = 20;
       const result = validateDeployment(components, budget, startupSchool.modifiers);
 
-      expect(result.totalCost).toBe(16);
+      expect(result.totalCost).toBe(14);
       expect(result.overBudget).toBe(false);
       expect(result.penalty).toBe(0);
     });
 
     it('reports exactly at budget as not over budget', () => {
-      const healthCheck = data.components.find(c => c.id === 'cmp_health_check')!;
-      const featureFlag = data.components.find(c => c.id === 'cmp_feature_flag')!;
+      const healthCheck = data.components.find(c => c.id === 'cmp_health_check')!; // 4
+      const featureFlag = data.components.find(c => c.id === 'cmp_feature_flag')!; // 4
 
       const components = [healthCheck, featureFlag];
-      // With startup school (no discounts): 5 + 5 = 10
-      const budget = 10;
+      // 4 + 4 = 8
+      const budget = 8;
       const result = validateDeployment(components, budget, startupSchool.modifiers);
 
-      expect(result.totalCost).toBe(10);
+      expect(result.totalCost).toBe(8);
       expect(result.overBudget).toBe(false);
       expect(result.penalty).toBe(0);
     });
 
     it('calculates over-budget penalty as (totalCost - budget) * 5', () => {
-      const multiAz = data.components.find(c => c.id === 'cmp_multi_az')!;
-      const sqlDb = data.components.find(c => c.id === 'cmp_sql_db')!;
-      const cache = data.components.find(c => c.id === 'cmp_cache')!;
+      const multiAz = data.components.find(c => c.id === 'cmp_multi_az')!; // 16
+      const pg = data.components.find(c => c.id === 'cmp_postgresql')!; // 14
+      const aurora = data.components.find(c => c.id === 'cmp_aurora')!; // 18
 
-      const components = [multiAz, sqlDb, cache];
-      // With startup school (no discounts): 22 + 18 + 15 = 55
-      const budget = 50;
+      const components = [multiAz, pg, aurora];
+      // With startup school (no discounts): 16 + 14 + 18 = 48
+      const budget = 40;
       const result = validateDeployment(components, budget, startupSchool.modifiers);
 
-      expect(result.totalCost).toBe(55);
+      expect(result.totalCost).toBe(48);
       expect(result.overBudget).toBe(true);
-      // (55 - 50) * 5 = 25
-      expect(result.penalty).toBe(25);
+      // (48 - 40) * 5 = 40
+      expect(result.penalty).toBe(40);
     });
 
     it('applies school discounts when calculating deployment total', () => {
-      // SRE school: multi_az (22->16), health_check (5->4), circuit_breaker (8->6)
-      const multiAz = data.components.find(c => c.id === 'cmp_multi_az')!;
-      const healthCheck = data.components.find(c => c.id === 'cmp_health_check')!;
-      const circuitBreaker = data.components.find(c => c.id === 'cmp_circuit_breaker')!;
+      // SRE school: discount ha components
+      const multiAz = data.components.find(c => c.id === 'cmp_multi_az')!; // 16 -> 12
+      const healthCheck = data.components.find(c => c.id === 'cmp_health_check')!; // 4 -> 3
+      const circuitBreaker = data.components.find(c => c.id === 'cmp_circuit_breaker')!; // 7 -> 5
 
       const components = [multiAz, healthCheck, circuitBreaker];
-      // With SRE discounts: 16 + 4 + 6 = 26
+      // With SRE discounts: 12 + 3 + 5 = 20
       const budget = 30;
       const result = validateDeployment(components, budget, sreSchool.modifiers);
 
-      expect(result.totalCost).toBe(26);
+      expect(result.totalCost).toBe(20);
       expect(result.overBudget).toBe(false);
       expect(result.penalty).toBe(0);
     });

@@ -43,6 +43,7 @@ export default function BlindSelectScreen() {
           const isPast = i < currentIdx;
           const isFuture = i > currentIdx;
           const result = gameState.phaseResults[i];
+          const constraints = phase.constraints;
 
           return (
             <motion.div
@@ -80,18 +81,25 @@ export default function BlindSelectScreen() {
                   <span className="text-[var(--color-text-muted)]">Budget</span>
                   <span className="font-display">{phase.capacity_budget + gameState.school.modifiers.capacity_budget_offset}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--color-text-muted)]">Weights</span>
-                  <span className="font-display text-xs">
-                    <span className="text-[var(--color-perf)]">P{phase.weights.perf}</span>{' '}
-                    <span className="text-[var(--color-rel)]">R{phase.weights.rel}</span>{' '}
-                    <span className="text-[var(--color-cx)]">X{phase.weights.cx}</span>
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--color-text-muted)]">SLA</span>
-                  <span className="font-display">{phase.constraints.sla}%</span>
-                </div>
+              </div>
+
+              {/* Constraints preview */}
+              <div className="mt-3 space-y-1 text-[11px]">
+                {constraints.min_perf !== undefined && (
+                  <div className="text-[var(--color-perf)]">P {'>='} {constraints.min_perf}</div>
+                )}
+                {constraints.min_rel !== undefined && (
+                  <div className="text-[var(--color-rel)]">R {'>='} {constraints.min_rel}</div>
+                )}
+                {constraints.max_cx !== undefined && (
+                  <div className="text-[var(--color-cx)]">CX &lt;= {constraints.max_cx}</div>
+                )}
+                {constraints.min_domains !== undefined && (
+                  <div className="text-purple-400">{constraints.min_domains}+ domains</div>
+                )}
+                {constraints.required_tags && constraints.required_tags.length > 0 && (
+                  <div className="text-amber-400">Need: {constraints.required_tags.join(', ')}</div>
+                )}
               </div>
 
               {/* Boss rule warning */}

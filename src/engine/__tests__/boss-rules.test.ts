@@ -3,7 +3,6 @@ import {
   parseBossRuleEffects,
   applyBossCapacityCost,
   applyBossBudgetFactor,
-  applyTechDebtRisks,
   validateNoDuplicateTags,
 } from '../boss-rules.js';
 import { loadGameData } from '../../data/loader.js';
@@ -15,15 +14,12 @@ function makeComponent(overrides: Partial<Component> = {}): Component {
     id: 'cmp_test',
     name: 'Test Component',
     desc: 'A test component',
+    domain: 'compute',
     tags: [],
+    base_chips: 3,
     delta: { perf: 0, rel: 0, cx: 0 },
     capacity_cost: 2,
-    exposes: [],
-    seals: [],
-    requires_tags: [],
-    conflicts_tags: [],
     rarity: 'common',
-    category: 'functional',
     ...overrides,
   };
 }
@@ -44,9 +40,8 @@ describe('boss-rules', () => {
         factor: 2.0,
       });
       expect(effects.capacityBudgetFactor).toBeUndefined();
-      expect(effects.hideRiskReport).toBeUndefined();
-      expect(effects.extraRandomRiskPerComponent).toBeUndefined();
       expect(effects.noDuplicateTags).toBeUndefined();
+      expect(effects.extraConstraintPenalty).toBeUndefined();
     });
 
     it('parses boss_budget_halved into capacityBudgetFactor', () => {
@@ -57,25 +52,26 @@ describe('boss-rules', () => {
       expect(effects.capacityMultiplierForTags).toBeUndefined();
     });
 
-    it('parses boss_blind_review into hideRiskReport', () => {
-      const rule = findBossRule('boss_blind_review');
-      const effects = parseBossRuleEffects(rule);
-
-      expect(effects.hideRiskReport).toBe(true);
-    });
-
-    it('parses boss_tech_debt_explosion into extraRandomRiskPerComponent', () => {
-      const rule = findBossRule('boss_tech_debt_explosion');
-      const effects = parseBossRuleEffects(rule);
-
-      expect(effects.extraRandomRiskPerComponent).toBe(1);
-    });
-
     it('parses boss_single_point into noDuplicateTags', () => {
       const rule = findBossRule('boss_single_point');
       const effects = parseBossRuleEffects(rule);
 
       expect(effects.noDuplicateTags).toBe(true);
+    });
+
+    it('returns empty effects for unrecognized modifiers', () => {
+      const effects = parseBossRuleEffects({
+        id: 'boss_custom',
+        name: 'Custom Boss',
+        desc: 'Something novel',
+        effect: 'unique effect',
+        modifier: { custom_field: 'xyz' },
+      });
+
+      expect(effects.capacityMultiplierForTags).toBeUndefined();
+      expect(effects.capacityBudgetFactor).toBeUndefined();
+      expect(effects.noDuplicateTags).toBeUndefined();
+      expect(effects.extraConstraintPenalty).toBeUndefined();
     });
   });
 
@@ -85,24 +81,36 @@ describe('boss-rules', () => {
     const cacheEffects = parseBossRuleEffects(findBossRule('boss_cache_disabled'));
 
     it('doubles cost for component with cache tag', () => {
-      const comp = makeComponent({ tags: ['cache', 'infra'] });
-      expect(applyBossCapacityCost(3, comp, cacheEffects)).toBe(6);
+      const c = makeComponent({ tags: ['cache', 'infra'], domain: 'data' });
+      expect(applyBossCapacityCost(3, c, cacheEffects)).toBe(6);
     });
 
     it('does not change cost for component without cache tag', () => {
-      const comp = makeComponent({ tags: ['db', 'sql'] });
-      expect(applyBossCapacityCost(3, comp, cacheEffects)).toBe(3);
+      const c = makeComponent({ tags: ['db', 'ha'], domain: 'data' });
+      expect(applyBossCapacityCost(3, c, cacheEffects)).toBe(3);
     });
 
     it('returns base cost when no capacity multiplier effects are active', () => {
-      const comp = makeComponent({ tags: ['cache'] });
-      expect(applyBossCapacityCost(3, comp, {})).toBe(3);
+      const c = makeComponent({ tags: ['cache'], domain: 'data' });
+      expect(applyBossCapacityCost(3, c, {})).toBe(3);
     });
 
     it('rounds up fractional results with Math.ceil', () => {
-      const comp = makeComponent({ tags: ['cache'] });
+      const c = makeComponent({ tags: ['cache'], domain: 'data' });
       // 5 * 2 = 10, integer result
-      expect(applyBossCapacityCost(5, comp, cacheEffects)).toBe(10);
+      expect(applyBossCapacityCost(5, c, cacheEffects)).toBe(10);
+    });
+
+    it('applies to real Redis component', () => {
+      const redis = data.components.find(c => c.id === 'cmp_redis')!;
+      // Redis has cache tag, base cost 10 -> 10 * 2 = 20
+      expect(applyBossCapacityCost(redis.capacity_cost, redis, cacheEffects)).toBe(20);
+    });
+
+    it('does not affect non-cache real components', () => {
+      const ec2 = data.components.find(c => c.id === 'cmp_ec2')!;
+      // EC2 has no cache tag, cost stays 8
+      expect(applyBossCapacityCost(ec2.capacity_cost, ec2, cacheEffects)).toBe(8);
     });
   });
 
@@ -122,49 +130,13 @@ describe('boss-rules', () => {
     it('returns original budget when no budget factor effect active', () => {
       expect(applyBossBudgetFactor(20, {})).toBe(20);
     });
-  });
 
-  // ── applyTechDebtRisks ──────────────────────────────────────────────
-
-  describe('applyTechDebtRisks', () => {
-    it('adds exactly 1 extra risk per component', () => {
-      const comp1 = makeComponent({ id: 'cmp_a', exposes: ['cache_avalanche'] });
-      const comp2 = makeComponent({ id: 'cmp_b', exposes: ['slow_query'] });
-
-      const result = applyTechDebtRisks([comp1, comp2], 1);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].exposes).toHaveLength(2); // 1 original + 1 extra
-      expect(result[1].exposes).toHaveLength(2);
+    it('handles zero budget', () => {
+      expect(applyBossBudgetFactor(0, budgetEffects)).toBe(0);
     });
 
-    it('does not add duplicate risks already on the component', () => {
-      const comp = makeComponent({ exposes: ['cache_avalanche'] });
-      const result = applyTechDebtRisks([comp], 1);
-
-      // The extra risk must not be cache_avalanche (already exposed)
-      expect(result[0].exposes[0]).toBe('cache_avalanche');
-      expect(result[0].exposes[1]).not.toBe('cache_avalanche');
-    });
-
-    it('does not mutate original components', () => {
-      const comp = makeComponent({ exposes: ['slow_query'] });
-      const original = [...comp.exposes];
-      applyTechDebtRisks([comp], 1);
-
-      expect(comp.exposes).toEqual(original);
-    });
-
-    it('handles component with empty exposes', () => {
-      const comp = makeComponent({ exposes: [] });
-      const result = applyTechDebtRisks([comp], 1);
-
-      expect(result[0].exposes).toHaveLength(1);
-    });
-
-    it('handles empty component list', () => {
-      const result = applyTechDebtRisks([], 1);
-      expect(result).toEqual([]);
+    it('handles large budgets', () => {
+      expect(applyBossBudgetFactor(200, budgetEffects)).toBe(100);
     });
   });
 
@@ -172,8 +144,8 @@ describe('boss-rules', () => {
 
   describe('validateNoDuplicateTags', () => {
     it('detects violations when same tag appears on multiple components', () => {
-      const comp1 = makeComponent({ id: 'cmp_a', tags: ['cache', 'infra'] });
-      const comp2 = makeComponent({ id: 'cmp_b', tags: ['cache', 'db'] });
+      const comp1 = makeComponent({ id: 'cmp_a', tags: ['cache', 'infra'], domain: 'data' });
+      const comp2 = makeComponent({ id: 'cmp_b', tags: ['cache', 'db'], domain: 'data' });
 
       const violations = validateNoDuplicateTags([comp1, comp2]);
 
@@ -183,9 +155,9 @@ describe('boss-rules', () => {
     });
 
     it('returns empty when all tags are unique across components', () => {
-      const comp1 = makeComponent({ id: 'cmp_a', tags: ['cache'] });
-      const comp2 = makeComponent({ id: 'cmp_b', tags: ['db'] });
-      const comp3 = makeComponent({ id: 'cmp_c', tags: ['queue'] });
+      const comp1 = makeComponent({ id: 'cmp_a', tags: ['cache'], domain: 'data' });
+      const comp2 = makeComponent({ id: 'cmp_b', tags: ['db'], domain: 'data' });
+      const comp3 = makeComponent({ id: 'cmp_c', tags: ['queue'], domain: 'data' });
 
       const violations = validateNoDuplicateTags([comp1, comp2, comp3]);
 
@@ -193,8 +165,8 @@ describe('boss-rules', () => {
     });
 
     it('detects multiple duplicate tags', () => {
-      const comp1 = makeComponent({ id: 'cmp_a', tags: ['cache', 'infra'] });
-      const comp2 = makeComponent({ id: 'cmp_b', tags: ['cache', 'infra'] });
+      const comp1 = makeComponent({ id: 'cmp_a', tags: ['cache', 'infra'], domain: 'data' });
+      const comp2 = makeComponent({ id: 'cmp_b', tags: ['cache', 'infra'], domain: 'network' });
 
       const violations = validateNoDuplicateTags([comp1, comp2]);
 
@@ -208,8 +180,26 @@ describe('boss-rules', () => {
     });
 
     it('handles single component (no duplicates possible)', () => {
-      const comp = makeComponent({ tags: ['cache', 'db', 'infra'] });
-      expect(validateNoDuplicateTags([comp])).toEqual([]);
+      const c = makeComponent({ tags: ['cache', 'db', 'infra'], domain: 'data' });
+      expect(validateNoDuplicateTags([c])).toEqual([]);
+    });
+
+    it('detects duplicates in real game data components', () => {
+      // Redis (cache, db) + Memcached (cache) -> duplicate "cache"
+      const redis = data.components.find(c => c.id === 'cmp_redis')!;
+      const memcached = data.components.find(c => c.id === 'cmp_memcached')!;
+
+      const violations = validateNoDuplicateTags([redis, memcached]);
+      expect(violations).toContain('cache');
+    });
+
+    it('no duplicates when components have disjoint tags', () => {
+      // EC2 (compute) + S3 (storage) -> no overlap
+      const ec2 = data.components.find(c => c.id === 'cmp_ec2')!;
+      const s3 = data.components.find(c => c.id === 'cmp_s3')!;
+
+      const violations = validateNoDuplicateTags([ec2, s3]);
+      expect(violations).toEqual([]);
     });
   });
 });

@@ -11,6 +11,7 @@ export function checkJokerSpecialCondition(
     capacityUsed: number;
     capacityBudget: number;
     deployedCount: number;
+    deployed?: Component[];
   },
 ): boolean {
   const special = joker.condition.special;
@@ -19,16 +20,114 @@ export function checkJokerSpecialCondition(
   switch (special) {
     case 'capacity_under_budget':
       return context.capacityUsed <= context.capacityBudget;
+    case 'component_count_lte_3':
+      return context.deployedCount <= 3;
     case 'component_count_lte_4':
       return context.deployedCount <= 4;
+    case 'five_same_domain': {
+      if (!context.deployed || context.deployed.length < 5) return false;
+      const domainCounts = new Map<string, number>();
+      for (const c of context.deployed) {
+        domainCounts.set(c.domain, (domainCounts.get(c.domain) ?? 0) + 1);
+      }
+      return Math.max(...domainCounts.values()) >= 5;
+    }
     default:
-      return true; // unknown special, treat as satisfied
+      return true;
   }
 }
 
 /**
+ * Compute chip bonus from jokers with 'chips' effect type.
+ * Adds N chips for each deployed component containing per_tag.
+ */
+export function computeJokerChipBonus(jokers: Joker[], deployed: Component[]): number {
+  let bonus = 0;
+  for (const j of jokers) {
+    if (j.effect.type === 'chips') {
+      const count = deployed.filter(c => c.tags.includes(j.effect.per_tag)).length;
+      bonus += j.effect.value * count;
+    }
+  }
+  return bonus;
+}
+
+/**
+ * Compute additive mult bonus from pattern_enhance jokers.
+ * Each pattern_enhance joker adds extra_mult per triggered pattern.
+ */
+export function computeJokerMultAdd(jokers: Joker[], patternCount: number): number {
+  let bonus = 0;
+  for (const j of jokers) {
+    if (j.effect.type === 'pattern_enhance') {
+      bonus += j.effect.extra_mult * patternCount;
+    }
+  }
+  return bonus;
+}
+
+/**
+ * Get multiplicative joker values (mult type + combo_mult type).
+ */
+export function getJokerMultipliers(jokers: Joker[], patternCount: number): number[] {
+  const multipliers: number[] = [];
+  for (const j of jokers) {
+    if (j.effect.type === 'mult') {
+      multipliers.push(j.effect.value);
+    } else if (j.effect.type === 'combo_mult') {
+      if (patternCount >= j.effect.min_patterns) {
+        multipliers.push(j.effect.value);
+      }
+    }
+  }
+  return multipliers;
+}
+
+/**
+ * Get hand size bonus from jokers.
+ */
+export function getJokerHandSizeBonus(jokers: Joker[]): number {
+  let bonus = 0;
+  for (const j of jokers) {
+    if (j.effect.type === 'hand_size') {
+      bonus += j.effect.value;
+    }
+  }
+  return bonus;
+}
+
+/**
+ * Get discard bonus from jokers.
+ */
+export function getJokerDiscardBonus(jokers: Joker[]): number {
+  let bonus = 0;
+  for (const j of jokers) {
+    if (j.effect.type === 'discard') {
+      bonus += j.effect.value;
+    }
+  }
+  return bonus;
+}
+
+/**
+ * Compute gold earned from joker gold effects.
+ */
+export function computeJokerGold(jokers: Joker[], patternCount: number): number {
+  let gold = 0;
+  for (const j of jokers) {
+    if (j.effect.type === 'gold') {
+      if (j.effect.per === 'pattern') {
+        gold += j.effect.value * patternCount;
+      } else if (j.effect.per === 'phase') {
+        gold += j.effect.value;
+      }
+    }
+  }
+  return gold;
+}
+
+/**
  * Apply school free components to the game state.
- * Adds free components to the pool without needing to draft or pay.
  */
 export function applySchoolFreeComponents(
   state: GameState,
@@ -47,7 +146,6 @@ export function applySchoolFreeComponents(
 
 /**
  * Apply Vibe Coding start bonuses (random joker + random tarot).
- * Only activates when the school has special_rules with the relevant flags.
  */
 export function applyVibeCodingStartBonuses(
   state: GameState,
@@ -75,7 +173,6 @@ export function applyVibeCodingStartBonuses(
 
 /**
  * Check if Vibe Coding capacity discount applies.
- * Returns the discount factor (1.0 = no discount, 0.7 = discounted).
  */
 export function rollVibeCodingCapacityDiscount(
   school: { modifiers: { special_rules?: Record<string, boolean | number> } },
@@ -92,7 +189,6 @@ export function rollVibeCodingCapacityDiscount(
 
 /**
  * Check if Vibe Coding extra risk applies.
- * Returns the number of extra risks to add (0 or count).
  */
 export function rollVibeCodingExtraRisk(
   school: { modifiers: { special_rules?: Record<string, boolean | number> } },

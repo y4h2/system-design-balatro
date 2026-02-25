@@ -1,41 +1,31 @@
 import { loadGameData, type GameData } from '../data/loader.js';
 import { createGameState } from '../engine/state.js';
-import { generateDraftChoices, applyDraftChoice } from '../engine/draft.js';
+import { autoDeal } from '../engine/draft.js';
 import { runPhase } from '../engine/phase-runner.js';
 import { generateShopInventory, calculatePhaseReward, calculateInterest } from '../engine/shop.js';
-import { selectEvents, rollTarotDropFromEvent } from '../engine/event-selection.js';
 import { formatSettlement } from '../ui/explainer.js';
 import {
   renderSchoolInfo,
   renderScenarioOverview,
   renderPhaseInfo,
   renderComponentPool,
-  renderDraftChoices,
-  renderRiskReport,
   renderDeployment,
 } from '../ui/renderer.js';
 import {
   promptSchoolSelection,
   promptScenarioSelection,
-  promptDraftChoice,
   promptDeploySelection,
   promptRepairAction,
-  promptUseTarot,
 } from '../ui/prompts.js';
-import { runShopPhase } from '../ui/shop-prompts.js';
-import { computeRiskExposure } from '../engine/risk.js';
 import { validateDeployment } from '../engine/deploy.js';
-import {
-  applyInfoRevealTarot,
-  applyStateModifyTarot,
-  useTarot,
-  type TarotContext,
-} from '../engine/tarot.js';
 import {
   applySchoolFreeComponents,
   applyVibeCodingStartBonuses,
+  getJokerHandSizeBonus,
+  getJokerDiscardBonus,
 } from '../engine/joker-specials.js';
-import type { Event, Phase, School, Joker, Tarot, BossRule } from '../schemas/index.js';
+import { runShopPhase } from '../ui/shop-prompts.js';
+import type { Phase, School, Joker, Tarot, BossRule } from '../schemas/index.js';
 import type { Panel } from '../engine/scoring.js';
 import type { GameState } from '../engine/state.js';
 
@@ -45,9 +35,6 @@ async function loadInquirer() {
   return await import('@inquirer/prompts');
 }
 
-/**
- * Derive baseline panel values from school modifiers.
- */
 function getBaseline(school: School): Panel {
   const overrides = school.modifiers.baseline_overrides ?? {};
   return {
@@ -57,9 +44,6 @@ function getBaseline(school: School): Panel {
   };
 }
 
-/**
- * Prompt player to skip or play a skippable blind.
- */
 async function promptSkipOrPlay(phase: Phase): Promise<'skip' | 'play'> {
   const { select } = await loadInquirer();
   return select<'skip' | 'play'>({
@@ -71,12 +55,6 @@ async function promptSkipOrPlay(phase: Phase): Promise<'skip' | 'play'> {
   });
 }
 
-/**
- * Apply skip reward based on the phase's skip_reward definition.
- *
- * - Small blind skip: pick 2 tarots from 4 random
- * - Big blind skip: pick 1 joker from the full pool
- */
 async function applySkipReward(
   state: GameState,
   phase: Phase,
@@ -90,7 +68,6 @@ async function applySkipReward(
   }
 
   if (reward.type === 'tarot_pick') {
-    // Offer N random tarots, player picks `pick` of them
     const fromCount = typeof reward.from === 'number' ? reward.from : 4;
     const pickCount = reward.pick ?? 2;
     const shuffled = [...data.tarots].sort(() => Math.random() - 0.5);
@@ -123,7 +100,6 @@ async function applySkipReward(
       }
     }
   } else if (reward.type === 'joker_direct_pick') {
-    // Pick from full joker pool
     const pickCount = reward.pick ?? 1;
     const ownedIds = state.jokerSlots.map(j => j.id);
     const available = data.jokers.filter(j => !ownedIds.includes(j.id));
@@ -146,7 +122,7 @@ async function applySkipReward(
       const picked = await select<Joker>({
         message: `Choose a joker (${i + 1}/${pickCount}):`,
         choices: remaining.map(j => ({
-          name: `${j.name} (x${j.multiplier}) - ${j.desc}`,
+          name: `${j.name} - ${j.desc}`,
           value: j,
         })),
       });
@@ -156,72 +132,8 @@ async function applySkipReward(
   }
 }
 
-/**
- * Offer the player a chance to use tarot cards from their hand.
- * Handles both info-reveal and state-modify tarots.
- * Returns any capacity budget bonus from state-modify tarots, and
- * a next-event penalty factor if the postmortem tarot was used.
- */
-async function offerTarotUsage(
-  state: GameState,
-  context: TarotContext,
-  label: string,
-): Promise<{ capacityBonus: number; eventPenaltyFactor: number }> {
-  let capacityBonus = 0;
-  let eventPenaltyFactor = 1;
-
-  while (state.tarotHand.length > 0) {
-    console.log(`\n  [${label}] You have ${state.tarotHand.length} tarot(s) in hand.`);
-    const choice = await promptUseTarot(state.tarotHand);
-    if (choice === null) break;
-
-    const tarot = useTarot(state, choice);
-    if (!tarot) break;
-
-    if (tarot.type === 'info_reveal') {
-      const result = applyInfoRevealTarot(tarot, context);
-      console.log(`\n  ${result.message}`);
-      if (result.revealedInfo) {
-        console.log(`  ${result.revealedInfo.split('\n').join('\n  ')}`);
-      }
-    } else {
-      const result = applyStateModifyTarot(tarot, context);
-      console.log(`\n  ${result.message}`);
-      if (result.success && result.stateChange) {
-        // Parse and apply state changes
-        if (result.stateChange.startsWith('add_capacity_budget:')) {
-          const amount = parseInt(result.stateChange.split(':')[1], 10);
-          capacityBonus += amount;
-        } else if (result.stateChange.startsWith('next_event_penalty_factor:')) {
-          const factor = parseFloat(result.stateChange.split(':')[1]);
-          eventPenaltyFactor *= factor;
-        } else if (result.stateChange.startsWith('reduce_component_capacity:')) {
-          const parts = result.stateChange.split(':');
-          const idx = parseInt(parts[1], 10);
-          const factor = parseFloat(parts[2]);
-          if (context.deployed[idx]) {
-            context.deployed[idx] = {
-              ...context.deployed[idx],
-              capacity_cost: Math.floor(context.deployed[idx].capacity_cost * factor),
-            };
-          }
-        } else if (result.stateChange.startsWith('remove_exposed_risk:')) {
-          // Mark for caller: exposed risk removal is informational here;
-          // actual risk recalculation happens during phase run
-          console.log('  (Risk removal will take effect in scoring)');
-        }
-      }
-    }
-  }
-
-  return { capacityBonus, eventPenaltyFactor };
-}
-
 // ── Main game loop ──────────────────────────────────────────────────
 
-/**
- * Run the full three-phase game with shop phases and skip-blind mechanics.
- */
 export async function playFullGame(): Promise<void> {
   const data = loadGameData();
 
@@ -237,39 +149,27 @@ export async function playFullGame(): Promise<void> {
 
   // 3. Create game state
   const state = createGameState(scenario, school);
-
-  // 3b. Apply school start bonuses
   applySchoolFreeComponents(state, data.components);
   applyVibeCodingStartBonuses(state, data.jokers, data.tarots);
 
-  // 4. Draft phase
-  const draftRounds = school.modifiers.draft_rounds;
-  const draftOptions = school.modifiers.draft_options ?? 3;
-  console.log(`\nDraft Phase: ${draftRounds} rounds, ${draftOptions} choices each\n`);
-
-  for (let i = 0; i < draftRounds; i++) {
-    const choices = generateDraftChoices(data.components, draftOptions);
-    renderDraftChoices(choices, i + 1, draftRounds);
-    const picked = await promptDraftChoice(choices);
-    applyDraftChoice(state, picked);
-    console.log(`  Added ${picked.name} to pool\n`);
-  }
+  // 4. Auto-deal initial components
+  const ownedIds = new Set(state.componentPool.map(c => c.id));
+  const dealt = autoDeal(data.components, ownedIds, school.modifiers.draft_rounds);
+  state.componentPool.push(...dealt);
+  console.log(`\nAuto-dealt ${dealt.length} components: ${dealt.map(c => c.name).join(', ')}\n`);
 
   // 5. Run 3 phases
   const baseline = getBaseline(school);
-  let allPassed = true;
 
   for (let phaseIdx = 0; phaseIdx < 3; phaseIdx++) {
     const phase = scenario.phases[phaseIdx];
     renderPhaseInfo(phase, phaseIdx);
 
-    // Skip check (Small/Big only, Boss cannot be skipped)
+    // Skip check
     if (phase.skippable) {
       const skipChoice = await promptSkipOrPlay(phase);
       if (skipChoice === 'skip') {
-        // Apply skip reward
         await applySkipReward(state, phase, data);
-
         state.phaseResults.push({
           blind: phase.blind,
           score: 0,
@@ -277,16 +177,12 @@ export async function playFullGame(): Promise<void> {
           passed: false,
           skipped: true,
         });
-
-        // Skipped phases do not count towards allPassed failure
-        // (only non-skipped failures count)
         console.log(`\n  Skipped ${phase.blind} blind.\n`);
-        // Skip the Shop after this phase too
         continue;
       }
     }
 
-    // Look up boss rule (if this is a boss phase with a boss_rule reference)
+    // Look up boss rule
     const bossRuleId = phase.boss_rule;
     const bossRule = bossRuleId
       ? data.bossRules.find(br => br.id === bossRuleId || br.id === `boss_${bossRuleId}`)
@@ -296,100 +192,23 @@ export async function playFullGame(): Promise<void> {
       console.log(`\n  Boss Rule: ${bossRule.name} - ${bossRule.effect}`);
     }
 
-    // Build event pool for tarot context
-    const [minSev, maxSev] = phase.event_pool_severity;
-    const phaseEventPool = data.events.filter(e => e.severity >= minSev && e.severity <= maxSev);
-    const nextEventPreview = phaseEventPool.length > 0
-      ? phaseEventPool[Math.floor(Math.random() * phaseEventPool.length)]
-      : undefined;
-
-    // Tarot usage (before deploy) - info-reveal tarots are most useful here
-    let capacityBonus = 0;
-    let eventPenaltyFactor = 1;
-    if (state.tarotHand.length > 0) {
-      const preDeployContext: TarotContext = {
-        eventPool: phaseEventPool,
-        drawnEvents: [],
-        nextEvent: nextEventPreview,
-        patterns: data.patterns,
-        deployed: [],
-        deployedTags: [],
-        capacityBudget: phase.capacity_budget + school.modifiers.capacity_budget_offset,
-      };
-      const preResult = await offerTarotUsage(state, preDeployContext, 'Before Deploy');
-      capacityBonus += preResult.capacityBonus;
-      eventPenaltyFactor *= preResult.eventPenaltyFactor;
-    }
-
     // Deploy
-    const effectiveBudget = phase.capacity_budget + school.modifiers.capacity_budget_offset + capacityBonus;
+    const effectiveBudget = phase.capacity_budget + school.modifiers.capacity_budget_offset;
     renderComponentPool(state.componentPool);
     const deployed = await promptDeploySelection(state.componentPool, effectiveBudget);
 
-    // Show deployment summary
     const deployValidation = validateDeployment(deployed, effectiveBudget, school.modifiers);
     renderDeployment(deployed, deployValidation.totalCost, effectiveBudget);
 
-    // Risk report (hidden during blind_review boss rule)
-    const hideRiskReport = bossRule?.modifier && (bossRule.modifier as Record<string, unknown>).hide_risk_report === true;
-    if (!hideRiskReport) {
-      const riskReport = computeRiskExposure(deployed);
-      const deployedTags = [...new Set(deployed.flatMap(c => c.tags))];
-      const triggeredPatternNames = data.patterns
-        .filter(p => {
-          const hasAll = p.requires_all_tags.every((t: string) => deployedTags.includes(t));
-          if (!hasAll) return false;
-          if (p.requires_any_tags.length === 0) return true;
-          return p.requires_any_tags.some((t: string) => deployedTags.includes(t));
-        })
-        .map(p => p.name);
-      renderRiskReport(riskReport, triggeredPatternNames, []);
-    } else {
-      console.log('\n  Risk report hidden by boss rule: Blind Review\n');
-    }
-
-    // Events: Boss gets 2, others get 1 (weighted by severity)
-    const eventCount = phase.blind === 'boss' ? 2 : 1;
-    const events = selectEvents(data.events, phase.event_pool_severity, eventCount);
-
-    // Show events
-    for (const evt of events) {
-      console.log(`\n  Event: ${evt.name} (severity ${evt.severity})`);
-      console.log(`  ${evt.flavor_text}`);
-      console.log(`  Targets: ${evt.targets_risks.join(', ')}`);
-    }
-    if (events.length === 0) {
-      console.log('\n  No matching event for this phase.\n');
-    }
-
-    // Tarot usage (after events) - state-modify tarots are most useful here
-    if (state.tarotHand.length > 0) {
-      const deployedTags = [...new Set(deployed.flatMap(c => c.tags))];
-      const postEventContext: TarotContext = {
-        eventPool: phaseEventPool,
-        drawnEvents: events,
-        nextEvent: undefined,
-        patterns: data.patterns,
-        deployed,
-        deployedTags,
-        capacityBudget: effectiveBudget,
-      };
-      const postResult = await offerTarotUsage(state, postEventContext, 'After Events');
-      capacityBonus += postResult.capacityBonus;
-      eventPenaltyFactor *= postResult.eventPenaltyFactor;
-    }
-
-    // Apply event penalty factor from postmortem tarot
-    const effectiveEvents = eventPenaltyFactor < 1
-      ? events.map(e => ({
-          ...e,
-          penalty: {
-            perf: Math.round(e.penalty.perf * eventPenaltyFactor),
-            rel: Math.round(e.penalty.rel * eventPenaltyFactor),
-            cx: Math.round(e.penalty.cx * eventPenaltyFactor),
-          },
-        }))
-      : events;
+    // Show constraints
+    const constraints = phase.constraints;
+    console.log('\n  Constraints:');
+    if (constraints.min_perf !== undefined) console.log(`    P >= ${constraints.min_perf}`);
+    if (constraints.min_rel !== undefined) console.log(`    R >= ${constraints.min_rel}`);
+    if (constraints.max_cx !== undefined) console.log(`    CX <= ${constraints.max_cx}`);
+    if (constraints.min_domains !== undefined) console.log(`    ${constraints.min_domains}+ domains`);
+    if (constraints.required_tags?.length) console.log(`    Required: ${constraints.required_tags.join(', ')}`);
+    console.log(`    Penalty per failure: -${constraints.constraint_penalty}`);
 
     // Run phase
     let settlement = runPhase({
@@ -400,13 +219,12 @@ export async function playFullGame(): Promise<void> {
       jokers: state.jokerSlots,
       patterns: data.patterns,
       superPatterns: data.superPatterns,
-      events: effectiveEvents,
       bossRule,
     });
 
     console.log('\n' + formatSettlement(settlement));
 
-    // Repair (if failed and has repair count)
+    // Repair
     if (!settlement.passed) {
       const repairCount = school.modifiers.repair_count;
       if (repairCount > 0) {
@@ -426,7 +244,6 @@ export async function playFullGame(): Promise<void> {
             jokers: state.jokerSlots,
             patterns: data.patterns,
             superPatterns: data.superPatterns,
-            events: effectiveEvents,
             bossRule,
           });
 
@@ -435,7 +252,7 @@ export async function playFullGame(): Promise<void> {
 
           if (settlement.passed) break;
         } else {
-          break; // Player chose to skip repair
+          break;
         }
       }
     }
@@ -449,39 +266,23 @@ export async function playFullGame(): Promise<void> {
       skipped: false,
     });
 
-    if (!settlement.passed) allPassed = false;
-
     // Gold reward
     const reward = calculatePhaseReward(settlement.passed, phase.blind);
-    state.gold += reward;
-    console.log(`\n  Gold reward: +${reward} (total: ${state.gold})`);
+    state.gold += reward + settlement.jokerGold;
+    console.log(`\n  Gold reward: +${reward} + ${settlement.jokerGold} joker gold (total: ${state.gold})`);
 
-    // Tarot drops from high-severity events
-    for (const evt of events) {
-      if (rollTarotDropFromEvent(evt.severity)) {
-        const shuffled = [...data.tarots].sort(() => Math.random() - 0.5);
-        const drop = shuffled[0];
-        if (drop && state.tarotHand.length < state.tarotHandMax) {
-          state.tarotHand.push(drop);
-          console.log(`\n  Tarot drop! Received ${drop.name} from surviving ${evt.name} (severity ${evt.severity})`);
-        }
-      }
-    }
-
-    // Shop (only after Small and Big blinds, not after Boss)
+    // Shop (only after Small and Big blinds)
     if (phaseIdx < 2) {
-      // Apply interest before shop
       const interest = calculateInterest(state.gold);
       if (interest > 0) {
         state.gold += interest;
         console.log(`\n  Interest: +${interest} gold (total: ${state.gold})`);
       }
 
-      const ownedComponentIds = state.componentPool.map(c => c.id);
-      const ownedJokerIds = state.jokerSlots.map(j => j.id);
       const inventory = generateShopInventory(
         data.components, data.jokers, data.tarots,
-        ownedComponentIds, ownedJokerIds,
+        state.componentPool.map(c => c.id),
+        state.jokerSlots.map(j => j.id),
       );
       await runShopPhase(state, inventory, data);
     }
@@ -494,13 +295,7 @@ export async function playFullGame(): Promise<void> {
     console.log(`  ${result.blind}: ${status} (${result.score}/${result.targetScore})`);
   }
 
-  // Only non-skipped phases need to pass for victory
   const nonSkipped = state.phaseResults.filter(r => !r.skipped);
-  const allNonSkippedPassed = nonSkipped.every(r => r.passed);
-
-  if (allNonSkippedPassed && nonSkipped.length > 0) {
-    console.log('\n  Victory!\n');
-  } else {
-    console.log('\n  Defeat.\n');
-  }
+  const allPassed = nonSkipped.every(r => r.passed);
+  console.log(allPassed && nonSkipped.length > 0 ? '\n  Victory!\n' : '\n  Defeat.\n');
 }

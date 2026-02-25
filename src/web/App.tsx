@@ -1,7 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useGameStore } from './store/gameStore';
 import TitleScreen from './screens/TitleScreen';
-import DraftScreen from './screens/DraftScreen';
 import BlindSelectScreen from './screens/BlindSelectScreen';
 import PlayScreen from './screens/PlayScreen';
 import SettlementScreen from './screens/SettlementScreen';
@@ -10,7 +9,6 @@ import GameOverScreen from './screens/GameOverScreen';
 
 const screens: Record<string, React.FC> = {
   title: TitleScreen,
-  draft: DraftScreen,
   blindSelect: BlindSelectScreen,
   play: PlayScreen,
   settlement: SettlementScreen,

@@ -1,82 +1,92 @@
 [
   {
     "id": "jk_sla_maniac",
-    "name": "SLA \u72c2\u9b54",
-    "desc": "\u9ad8\u53ef\u7528\u7ec4\u5408\u66f4\u731b",
+    "name": "SLA 狂魔",
+    "desc": "高可用组合更猛",
     "rarity": "rare",
-    "multiplier": 1.3,
-    "condition": {
-      "require_all_tags": ["multi_az", "health_check"],
-      "require_any_tags": ["circuit_breaker", "failover"]
-    },
-    "reduce_event_penalty": [{ "event_id": "event_az_outage", "factor": 0.5 }],
+    "condition": { "require_all_tags": [], "require_any_tags": ["ha"], "special": null },
+    "effect": { "type": "mult", "value": 1.3 },
     "shop_cost": 8
   },
   {
-    "id": "jk_cost_ceiling",
-    "name": "\u6210\u672c\u7ea2\u7ebf",
-    "desc": "\u4e0d\u8d85\u9884\u7b97\u65f6\u989d\u5916\u500d\u7387",
+    "id": "jk_data_hoarder",
+    "name": "数据囤积者",
+    "desc": "每张含 db tag 的组件 +3 chips",
     "rarity": "uncommon",
-    "multiplier": 1.2,
-    "condition": {
-      "require_all_tags": [],
-      "require_any_tags": ["cache", "cdn"],
-      "special": "capacity_under_budget"
-    },
-    "reduce_event_penalty": [],
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": null },
+    "effect": { "type": "chips", "value": 3, "per_tag": "db" },
+    "shop_cost": 6
+  },
+  {
+    "id": "jk_cloud_native",
+    "name": "云原生信徒",
+    "desc": "每张含 deploy tag 的组件 +2 chips",
+    "rarity": "uncommon",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": null },
+    "effect": { "type": "chips", "value": 2, "per_tag": "deploy" },
     "shop_cost": 5
   },
   {
-    "id": "jk_async_believer",
-    "name": "\u5f02\u6b65\u4fe1\u5f92",
-    "desc": "\u5f02\u6b65\u94fe\u8def\u51d1\u9f50\u5c31\u5f3a\u5316",
+    "id": "jk_pattern_amp",
+    "name": "模式放大器",
+    "desc": "每个触发 pattern 额外 +1 mult",
+    "rarity": "rare",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": null },
+    "effect": { "type": "pattern_enhance", "extra_mult": 1 },
+    "shop_cost": 8
+  },
+  {
+    "id": "jk_combo_king",
+    "name": "连击之王",
+    "desc": "2+ patterns 时 ×1.5",
+    "rarity": "rare",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": null },
+    "effect": { "type": "combo_mult", "min_patterns": 2, "value": 1.5 },
+    "shop_cost": 9
+  },
+  {
+    "id": "jk_card_counter",
+    "name": "算牌大师",
+    "desc": "手牌 +2",
     "rarity": "uncommon",
-    "multiplier": 1.2,
-    "condition": {
-      "require_all_tags": ["queue", "worker"],
-      "require_any_tags": ["rate_limit"]
-    },
-    "reduce_event_penalty": [{ "event_id": "event_traffic_spike", "factor": 0.4 }],
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": null },
+    "effect": { "type": "hand_size", "value": 2 },
+    "shop_cost": 6
+  },
+  {
+    "id": "jk_reroll_master",
+    "name": "重抽大师",
+    "desc": "弃牌次数 +2",
+    "rarity": "uncommon",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": null },
+    "effect": { "type": "discard", "value": 2 },
     "shop_cost": 5
   },
   {
-    "id": "jk_observe_or_die",
-    "name": "\u5148\u89c2\u6d4b\u518d\u4e0a\u7ebf",
-    "desc": "\u6709\u53ef\u89c2\u6d4b\u5c31\u5927\u5e45\u51cf\u4e8b\u6545\u60e9\u7f5a",
+    "id": "jk_gold_mine",
+    "name": "掘金者",
+    "desc": "每个 pattern +5 gold",
     "rarity": "common",
-    "multiplier": 1.1,
-    "condition": {
-      "require_all_tags": [],
-      "require_any_tags": ["obs"]
-    },
-    "reduce_event_penalty": [{ "event_id": "*", "factor": 0.75 }],
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": null },
+    "effect": { "type": "gold", "value": 5, "per": "pattern" },
     "shop_cost": 4
   },
   {
-    "id": "jk_mvp_first",
-    "name": "MVP \u4f18\u5148",
-    "desc": "\u8f7b\u91cf\u65b9\u6848\u500d\u7387\u66f4\u9ad8",
-    "rarity": "common",
-    "multiplier": 1.15,
-    "condition": {
-      "require_all_tags": [],
-      "require_any_tags": ["gateway", "cache"],
-      "special": "component_count_lte_4"
-    },
-    "reduce_event_penalty": [],
-    "shop_cost": 3
+    "id": "jk_all_in",
+    "name": "梭哈",
+    "desc": "5 张同 domain 时 ×2",
+    "rarity": "rare",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": "five_same_domain" },
+    "effect": { "type": "mult", "value": 2.0 },
+    "shop_cost": 10
   },
   {
-    "id": "jk_hotspot_tamer",
-    "name": "\u70ed\u70b9\u99ef\u670d\u8005",
-    "desc": "\u70ed\u70b9\u7c7b\u4e8b\u4ef6\u66f4\u597d\u6297",
+    "id": "jk_minimalist",
+    "name": "极简主义",
+    "desc": "≤3 张部署 chips ×1.5",
     "rarity": "uncommon",
-    "multiplier": 1.2,
-    "condition": {
-      "require_all_tags": ["cache"],
-      "require_any_tags": ["cdn"]
-    },
-    "reduce_event_penalty": [{ "event_id": "event_hot_key", "factor": 0.4 }],
-    "shop_cost": 5
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": "component_count_lte_3" },
+    "effect": { "type": "mult", "value": 1.5 },
+    "shop_cost": 6
   }
 ]

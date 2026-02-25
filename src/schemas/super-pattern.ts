@@ -6,23 +6,22 @@ const PatternCountTrigger = z.object({
   min_patterns: z.number(),
 });
 
-const RiskAndPatternTrigger = z.object({
-  type: z.literal('risk_and_pattern'),
-  min_patterns: z.number(),
-  min_exposed_risks: z.number().optional(),
-  max_exposed_risks: z.number().optional(),
-});
-
 const BudgetAndPatternTrigger = z.object({
   type: z.literal('budget_and_pattern'),
   min_patterns: z.number(),
   max_budget_usage_percent: z.number(),
 });
 
+const DomainCountTrigger = z.object({
+  type: z.literal('domain_count'),
+  min_domains: z.number(),
+  min_patterns: z.number(),
+});
+
 const TriggerSchema = z.discriminatedUnion('type', [
   PatternCountTrigger,
-  RiskAndPatternTrigger,
   BudgetAndPatternTrigger,
+  DomainCountTrigger,
 ]);
 
 // Reward discriminated union
@@ -36,22 +35,21 @@ const CapacityRefundReward = z.object({
   refund_amount: z.number(),
 });
 
-const EventImmunityReward = z.object({
-  type: z.literal('event_immunity'),
+const ChipsBurstReward = z.object({
+  type: z.literal('chips_burst'),
+  chips_add: z.number(),
 });
 
-const DimensionFlipReward = z.object({
-  type: z.literal('dimension_flip'),
-  flip_dimension: z.string(),
-  from: z.string(),
-  to: z.string(),
+const GoldBurstReward = z.object({
+  type: z.literal('gold_burst'),
+  gold: z.number(),
 });
 
 const RewardSchema = z.discriminatedUnion('type', [
   MultBurstReward,
   CapacityRefundReward,
-  EventImmunityReward,
-  DimensionFlipReward,
+  ChipsBurstReward,
+  GoldBurstReward,
 ]);
 
 export const SuperPatternSchema = z.object({

@@ -1,58 +1,30 @@
 [
   {
     "id": "sp_full_stack",
-    "name": "\u5168\u6808\u67b6\u6784\u5e08",
-    "desc": "\u540c\u65f6\u89e6\u53d1 3 \u4e2a\u57fa\u7840\u724c\u578b",
-    "trigger": {
-      "type": "pattern_count",
-      "min_patterns": 3
-    },
-    "reward": {
-      "type": "mult_burst",
-      "mult_add": 8
-    }
-  },
-  {
-    "id": "sp_edge_dancer",
-    "name": "\u5200\u5c16\u8df3\u821e",
-    "desc": "\u89e6\u53d1\u724c\u578b\u7684\u540c\u65f6\u4fdd\u6301 3 \u4e2a\u4ee5\u4e0a\u98ce\u9669\u6562\u53e3",
-    "trigger": {
-      "type": "risk_and_pattern",
-      "min_patterns": 1,
-      "min_exposed_risks": 3
-    },
-    "reward": {
-      "type": "capacity_refund",
-      "refund_amount": 20
-    }
-  },
-  {
-    "id": "sp_iron_wall",
-    "name": "\u94dc\u5899\u94c1\u58c1",
-    "desc": "\u89e6\u53d1\u724c\u578b\u4e14\u6240\u6709\u98ce\u9669\u5168\u90e8\u5c01\u5835",
-    "trigger": {
-      "type": "risk_and_pattern",
-      "min_patterns": 1,
-      "max_exposed_risks": 0
-    },
-    "reward": {
-      "type": "event_immunity"
-    }
+    "name": "全栈架构师",
+    "desc": "同时触发 3 个基础牌型",
+    "trigger": { "type": "pattern_count", "min_patterns": 3 },
+    "reward": { "type": "mult_burst", "mult_add": 8 }
   },
   {
     "id": "sp_minimalist",
-    "name": "\u6781\u7b80\u4e3b\u4e49",
-    "desc": "\u5bb9\u91cf\u4f7f\u7528\u4e0d\u5230 60% \u4e14\u89e6\u53d1\u724c\u578b",
-    "trigger": {
-      "type": "budget_and_pattern",
-      "min_patterns": 1,
-      "max_budget_usage_percent": 60
-    },
-    "reward": {
-      "type": "dimension_flip",
-      "flip_dimension": "cx",
-      "from": "negative",
-      "to": "positive"
-    }
+    "name": "极简主义",
+    "desc": "容量使用不到 60% 且触发牌型",
+    "trigger": { "type": "budget_and_pattern", "min_patterns": 1, "max_budget_usage_percent": 60 },
+    "reward": { "type": "chips_burst", "chips_add": 15 }
+  },
+  {
+    "id": "sp_polyglot",
+    "name": "多面手",
+    "desc": "使用 4+ 不同 domain 且触发牌型",
+    "trigger": { "type": "domain_count", "min_domains": 4, "min_patterns": 1 },
+    "reward": { "type": "mult_burst", "mult_add": 5 }
+  },
+  {
+    "id": "sp_gold_rush",
+    "name": "淘金热",
+    "desc": "同时触发 4+ 牌型",
+    "trigger": { "type": "pattern_count", "min_patterns": 4 },
+    "reward": { "type": "gold_burst", "gold": 15 }
   }
 ]

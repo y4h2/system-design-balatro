@@ -1,12 +1,10 @@
 import { create } from 'zustand';
 import { loadGameDataWeb, type GameData } from '../../data/loader-web.js';
 import { createGameState, type GameState } from '../../engine/state.js';
-import { generateDraftChoices, applyDraftChoice } from '../../engine/draft.js';
+import { autoDeal } from '../../engine/draft.js';
 import { runPhase, type PhaseSettlement } from '../../engine/phase-runner.js';
 import { validateDeployment } from '../../engine/deploy.js';
-import { computeRiskExposure, type RiskReport } from '../../engine/risk.js';
 import { dealHand, discardAndDraw, type HandState } from '../../engine/hand.js';
-import { selectEvents, rollTarotDropFromEvent } from '../../engine/event-selection.js';
 import {
   generateShopInventory,
   buyComponent,
@@ -19,10 +17,13 @@ import {
   calculateInterest,
   type ShopInventory,
 } from '../../engine/shop.js';
-import { applySchoolFreeComponents, applyVibeCodingStartBonuses } from '../../engine/joker-specials.js';
+import { applySchoolFreeComponents, applyVibeCodingStartBonuses, getJokerHandSizeBonus, getJokerDiscardBonus } from '../../engine/joker-specials.js';
 import { detectPatterns } from '../../engine/patterns.js';
-import type { Component, Joker, Tarot, Event, School, Phase } from '../../schemas/index.js';
-import type { Panel } from '../../engine/scoring.js';
+import { computePanel, computeChips, computeMult, computeFinalScore, type Panel } from '../../engine/scoring.js';
+import { computeJokerChipBonus, computeJokerMultAdd, getJokerMultipliers, computeJokerGold } from '../../engine/joker-specials.js';
+import { validateConstraints } from '../../engine/constraints.js';
+import { applyTarot } from '../../engine/tarot.js';
+import type { Component, Joker, Tarot, School, Phase } from '../../schemas/index.js';
 import type { Screen } from './types.js';
 
 function getBaseline(school: School): Panel {
@@ -36,17 +37,24 @@ interface GameStore {
   gameState: GameState | null;
   currentScreen: Screen;
 
-  // ── Draft ──
-  draftRound: number;
-  draftChoices: Component[];
-
   // ── Play ──
   handState: HandState | null;
-  selectedForDeploy: string[]; // component IDs toggled for deploy
-  selectedForDiscard: string[]; // component IDs selected for discard
-  riskPreview: RiskReport | null;
-  patternPreview: string[];    // triggered pattern names
-  currentEvents: Event[];
+  selectedForDeploy: string[];
+  selectedForDiscard: string[];
+  patternPreview: string[];
+  scorePreview: {
+    panel: Panel;
+    baseChips: number;
+    patternChips: number;
+    jokerChips: number;
+    chips: number;
+    mult: number;
+    patternMultAdds: number[];
+    jokerMults: number[];
+    penalty: number;
+    constraintFailures: string[];
+    finalScore: number;
+  } | null;
   settlement: PhaseSettlement | null;
 
   // ── Shop ──
@@ -54,9 +62,6 @@ interface GameStore {
 
   // ── Actions ──
   startGame(schoolId: string, scenarioId: string): void;
-  generateDraft(): void;
-  pickDraftComponent(component: Component): void;
-  finishDraft(): void;
 
   skipBlind(): void;
   startPlay(): void;
@@ -65,6 +70,7 @@ interface GameStore {
   executeDiscard(): void;
   updatePreview(): void;
   runCurrentPhase(): void;
+  applyTarotCard(tarotIndex: number, targetComponentId: string, newDomain?: string): void;
 
   continueAfterSettlement(): void;
 
@@ -83,14 +89,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   gameData: loadGameDataWeb(),
   gameState: null,
   currentScreen: 'title',
-  draftRound: 0,
-  draftChoices: [],
   handState: null,
   selectedForDeploy: [],
   selectedForDiscard: [],
-  riskPreview: null,
   patternPreview: [],
-  currentEvents: [],
+  scorePreview: null,
   settlement: null,
   shopInventory: null,
 
@@ -103,35 +106,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = createGameState(scenario, school);
     applySchoolFreeComponents(state, gameData.components);
     applyVibeCodingStartBonuses(state, gameData.jokers, gameData.tarots);
-    set({ gameState: state, currentScreen: 'draft', draftRound: 0 });
-    get().generateDraft();
-  },
 
-  generateDraft() {
-    const { gameData, gameState } = get();
-    if (!gameState) return;
-    const options = gameState.school.modifiers.draft_options ?? 3;
-    const ownedIds = new Set(gameState.componentPool.map(c => c.id));
-    const available = gameData.components.filter(c => !ownedIds.has(c.id));
-    const choices = generateDraftChoices(available, options);
-    set(s => ({ draftChoices: choices, draftRound: s.draftRound + 1 }));
-  },
+    // Auto-deal: assign random components to pool
+    const ownedIds = new Set(state.componentPool.map(c => c.id));
+    const dealt = autoDeal(gameData.components, ownedIds, school.modifiers.draft_rounds);
+    state.componentPool.push(...dealt);
 
-  pickDraftComponent(component) {
-    const { gameState, draftRound } = get();
-    if (!gameState) return;
-    applyDraftChoice(gameState, component);
-    const totalRounds = gameState.school.modifiers.draft_rounds;
-    if (draftRound >= totalRounds) {
-      set({ gameState: { ...gameState }, currentScreen: 'blindSelect', draftChoices: [] });
-    } else {
-      set({ gameState: { ...gameState }, draftChoices: [] });
-      get().generateDraft();
-    }
-  },
-
-  finishDraft() {
-    set({ currentScreen: 'blindSelect' });
+    set({ gameState: state, currentScreen: 'blindSelect' });
   },
 
   skipBlind() {
@@ -160,14 +141,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startPlay() {
     const { gameState } = get();
     if (!gameState) return;
-    const handState = dealHand(gameState.componentPool);
+
+    // Dynamic hand size/discards from joker bonuses
+    const handSizeBonus = getJokerHandSizeBonus(gameState.jokerSlots);
+    const discardBonus = getJokerDiscardBonus(gameState.jokerSlots);
+    const handState = dealHand(gameState.componentPool, 8 + handSizeBonus, 3 + discardBonus);
+
     set({
       currentScreen: 'play',
       handState,
       selectedForDeploy: [],
       selectedForDiscard: [],
-      riskPreview: null,
       patternPreview: [],
+      scorePreview: null,
       settlement: null,
     });
   },
@@ -179,7 +165,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
         : [...s.selectedForDeploy, componentId];
       return { selectedForDeploy: selected };
     });
-    // Trigger preview update after state change
     setTimeout(() => get().updatePreview(), 0);
   },
 
@@ -189,7 +174,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         ? s.selectedForDiscard.filter(id => id !== componentId)
         : s.selectedForDiscard.length < 5
           ? [...s.selectedForDiscard, componentId]
-          : s.selectedForDiscard; // max 5
+          : s.selectedForDiscard;
       return { selectedForDiscard: selected };
     });
   },
@@ -201,7 +186,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       handState: newHandState,
       selectedForDiscard: [],
-      selectedForDeploy: [], // reset deploy selections
+      selectedForDeploy: [],
     });
   },
 
@@ -209,10 +194,54 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { gameState, gameData, selectedForDeploy, handState } = get();
     if (!gameState) return;
     const deployed = handState?.hand.filter(c => selectedForDeploy.includes(c.id)) ?? [];
-    const riskPreview = computeRiskExposure(deployed);
     const deployedTags = [...new Set(deployed.flatMap(c => c.tags))];
-    const patternPreview = detectPatterns(deployedTags, gameData.patterns).map(p => p.name);
-    set({ riskPreview, patternPreview });
+    const triggeredPatterns = detectPatterns(deployed, gameData.patterns);
+    const patternPreview = triggeredPatterns.map(p => p.name);
+
+    let scorePreview: GameStore['scorePreview'] = null;
+    if (deployed.length > 0) {
+      const phase = gameState.scenario.phases[gameState.currentPhaseIndex];
+      const baseline = getBaseline(gameState.school);
+      const panel = computePanel(deployed, baseline);
+
+      // Joker activation
+      const activeJokers = gameState.jokerSlots.filter(j => {
+        const { require_all_tags, require_any_tags } = j.condition;
+        if (!require_all_tags.every(t => deployedTags.includes(t))) return false;
+        if (require_any_tags.length === 0) return true;
+        return require_any_tags.some(t => deployedTags.includes(t));
+      });
+
+      // Chips
+      const baseChips = deployed.reduce((sum, c) => sum + c.base_chips, 0);
+      const patternChips = triggeredPatterns.reduce((sum, p) => sum + p.effects.chips_add, 0);
+      const jokerChips = computeJokerChipBonus(activeJokers, deployed);
+      const chips = computeChips(deployed, patternChips, jokerChips);
+
+      // Mult
+      const jokerMultAddTotal = computeJokerMultAdd(activeJokers, triggeredPatterns.length);
+      const jokerMultipliers = getJokerMultipliers(activeJokers, triggeredPatterns.length);
+      const patternMultAdds = triggeredPatterns.map(p => p.effects.mult_add);
+      const jokerMults = jokerMultipliers;
+      const mult = computeMult(triggeredPatterns, jokerMultAddTotal, jokerMultipliers);
+
+      // Constraints
+      const constraintResult = validateConstraints(panel, deployed, phase.constraints);
+      const penalty = constraintResult.penalty;
+      const budget = phase.capacity_budget + gameState.school.modifiers.capacity_budget_offset;
+      const { penalty: capacityPenalty } = validateDeployment(deployed, budget, gameState.school.modifiers);
+      const totalPenalty = penalty + capacityPenalty;
+
+      const finalScore = computeFinalScore(chips, mult, totalPenalty);
+      scorePreview = {
+        panel, baseChips, patternChips, jokerChips, chips, mult,
+        patternMultAdds, jokerMults, penalty: totalPenalty,
+        constraintFailures: constraintResult.failures,
+        finalScore,
+      };
+    }
+
+    set({ patternPreview, scorePreview });
   },
 
   runCurrentPhase() {
@@ -223,10 +252,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const phase = gameState.scenario.phases[gameState.currentPhaseIndex];
       const { handState } = get();
       const deployed = handState?.hand.filter(c => selectedForDeploy.includes(c.id)) ?? [];
-
-      // Select events
-      const eventCount = phase.blind === 'boss' ? 2 : 1;
-      const events = selectEvents(gameData.events, phase.event_pool_severity, eventCount);
 
       // Look up boss rule
       const bossRuleId = phase.boss_rule;
@@ -242,11 +267,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
         jokers: gameState.jokerSlots,
         patterns: gameData.patterns,
         superPatterns: gameData.superPatterns,
-        events,
         bossRule,
       });
 
-      // Record result (clone to avoid mutation issues)
+      // Record result
       const updatedPhaseResults = [...gameState.phaseResults, {
         blind: phase.blind,
         score: settlement.finalScore,
@@ -255,35 +279,55 @@ export const useGameStore = create<GameStore>((set, get) => ({
         skipped: false,
       }];
 
-      // Gold reward
+      // Gold reward + joker gold earnings
       const reward = calculatePhaseReward(settlement.passed, phase.blind);
-      const updatedGold = gameState.gold + reward;
-
-      // Tarot drops
-      const updatedTarotHand = [...gameState.tarotHand];
-      for (const evt of events) {
-        if (rollTarotDropFromEvent(evt.severity)) {
-          const shuffled = [...gameData.tarots].sort(() => Math.random() - 0.5);
-          if (shuffled[0] && updatedTarotHand.length < gameState.tarotHandMax) {
-            updatedTarotHand.push(shuffled[0]);
-          }
-        }
-      }
+      const updatedGold = gameState.gold + reward + settlement.jokerGold;
 
       set({
         gameState: {
           ...gameState,
           phaseResults: updatedPhaseResults,
           gold: updatedGold,
-          tarotHand: updatedTarotHand,
         },
         settlement,
-        currentEvents: events,
         currentScreen: 'settlement',
       });
     } catch (err) {
       console.error('[runCurrentPhase] Error:', err);
     }
+  },
+
+  applyTarotCard(tarotIndex, targetComponentId, newDomain) {
+    const { gameState } = get();
+    if (!gameState) return;
+    if (tarotIndex < 0 || tarotIndex >= gameState.tarotHand.length) return;
+
+    const tarot = gameState.tarotHand[tarotIndex];
+    const targetIdx = gameState.componentPool.findIndex(c => c.id === targetComponentId);
+    if (targetIdx === -1) return;
+
+    let tarotToApply = tarot;
+    // For change_domain with wildcard, create a concrete version
+    if (tarot.effect.type === 'change_domain' && tarot.effect.to_domain === '*' && newDomain) {
+      tarotToApply = {
+        ...tarot,
+        effect: { ...tarot.effect, to_domain: newDomain },
+      };
+    }
+
+    const modified = applyTarot(tarotToApply, gameState.componentPool[targetIdx]);
+    const updatedPool = [...gameState.componentPool];
+    updatedPool[targetIdx] = modified;
+
+    const updatedTarotHand = gameState.tarotHand.filter((_, i) => i !== tarotIndex);
+
+    set({
+      gameState: {
+        ...gameState,
+        componentPool: updatedPool,
+        tarotHand: updatedTarotHand,
+      },
+    });
   },
 
   continueAfterSettlement() {
@@ -294,7 +338,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (nextPhaseIndex >= 3) {
       set({ gameState: updated, currentScreen: 'gameOver' });
     } else {
-      // Shop after Small and Big blinds (phases 0 and 1)
       if (nextPhaseIndex <= 2) {
         set({ gameState: updated });
         get().openShop();

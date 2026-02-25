@@ -4,7 +4,7 @@
     "name": "SRE \u6d41\u6d3e",
     "desc": "\u6211\u4eec\u4e0d\u6015\u8d35\uff0c\u6015\u7684\u662f\u6302",
     "modifiers": {
-      "capacity_discount_tags": ["multi_az", "health_check", "circuit_breaker", "failover"],
+      "capacity_discount_tags": ["ha"],
       "capacity_discount_factor": 0.7,
       "event_severity_offset": 1,
       "draft_rounds": 10,
@@ -67,7 +67,7 @@
     "name": "\u6027\u80fd\u6d41\u6d3e",
     "desc": "\u5feb\u5c31\u662f\u6b63\u4e49",
     "modifiers": {
-      "capacity_discount_tags": ["cache", "cdn", "read_replica", "edge"],
+      "capacity_discount_tags": ["cache", "edge"],
       "capacity_discount_factor": 0.7,
       "event_severity_offset": 0,
       "draft_rounds": 10,

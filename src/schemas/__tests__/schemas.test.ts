@@ -3,7 +3,6 @@ import {
   ComponentSchema,
   ScenarioSchema,
   JokerSchema,
-  EventSchema,
   PatternSchema,
   SuperPatternSchema,
   SchoolSchema,
@@ -13,7 +12,6 @@ import {
   type Scenario,
   type ScenarioInput,
   type Joker,
-  type Event,
   type Pattern,
   type SuperPattern,
   type School,
@@ -24,61 +22,53 @@ import {
 
 // ---------- Component ----------
 describe('ComponentSchema', () => {
-  const validFunctional: Component = {
-    id: 'comp_cdn',
+  const validComponent: Component = {
+    id: 'cmp_cdn',
     name: 'CDN',
     desc: 'Content delivery network',
-    tags: ['caching', 'edge'],
+    domain: 'network',
+    tags: ['cache', 'edge'],
+    base_chips: 4,
     delta: { perf: 3, rel: 1, cx: 2 },
     capacity_cost: 2,
-    exposes: ['cache_invalidation'],
-    seals: [],
-    requires_tags: [],
-    conflicts_tags: ['on_prem_only'],
     rarity: 'common',
-    category: 'functional',
   };
 
-  it('parses a valid functional component', () => {
-    const result = ComponentSchema.safeParse(validFunctional);
+  it('parses a valid component', () => {
+    const result = ComponentSchema.safeParse(validComponent);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.id).toBe('comp_cdn');
-      expect(result.data.category).toBe('functional');
+      expect(result.data.id).toBe('cmp_cdn');
+      expect(result.data.domain).toBe('network');
+      expect(result.data.base_chips).toBe(4);
     }
   });
 
-  it('parses a valid defensive component', () => {
-    const defensive: Component = {
-      ...validFunctional,
-      id: 'comp_waf',
-      name: 'WAF',
-      category: 'defensive',
-      seals: ['sql_injection'],
-      exposes: [],
-    };
-    const result = ComponentSchema.safeParse(defensive);
-    expect(result.success).toBe(true);
+  it('validates all 5 domains', () => {
+    for (const domain of ['compute', 'data', 'network', 'defense', 'platform'] as const) {
+      const result = ComponentSchema.safeParse({ ...validComponent, domain });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it('rejects an invalid domain', () => {
+    const result = ComponentSchema.safeParse({ ...validComponent, domain: 'storage' });
+    expect(result.success).toBe(false);
   });
 
   it('rejects a component missing required fields', () => {
-    const missing = { id: 'comp_bad', name: 'Bad' };
+    const missing = { id: 'cmp_bad', name: 'Bad' };
     const result = ComponentSchema.safeParse(missing);
     expect(result.success).toBe(false);
   });
 
   it('rejects capacity_cost less than 1', () => {
-    const result = ComponentSchema.safeParse({ ...validFunctional, capacity_cost: 0 });
+    const result = ComponentSchema.safeParse({ ...validComponent, capacity_cost: 0 });
     expect(result.success).toBe(false);
   });
 
   it('rejects an invalid rarity', () => {
-    const result = ComponentSchema.safeParse({ ...validFunctional, rarity: 'legendary' });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects an invalid category', () => {
-    const result = ComponentSchema.safeParse({ ...validFunctional, category: 'utility' });
+    const result = ComponentSchema.safeParse({ ...validComponent, rarity: 'legendary' });
     expect(result.success).toBe(false);
   });
 });
@@ -90,9 +80,11 @@ describe('ScenarioSchema', () => {
     subtitle: `${blind} blind subtitle`,
     capacity_budget: 10,
     target_score: 100,
-    weights: { perf: 0.4, rel: 0.3, cx: 0.3 },
-    constraints: { sla: 99.9, compliance_level: 'medium' as const },
-    event_pool_severity: [1, 2, 3],
+    constraints: {
+      min_perf: 3,
+      min_rel: 3,
+      constraint_penalty: 10,
+    },
   });
 
   const validScenario: ScenarioInput = {
@@ -133,8 +125,8 @@ describe('ScenarioSchema', () => {
     const phaseWithOptionals = {
       ...validPhase('boss'),
       skippable: true,
-      skip_reward: { type: 'draft', pick: 1, from: 3 },
-      boss_rule: 'br_no_cache',
+      skip_reward: { type: 'tarot_pick', pick: 1, from: 3 },
+      boss_rule: 'boss_cache_disabled',
     };
     const result = ScenarioSchema.safeParse({
       ...validScenario,
@@ -151,14 +143,16 @@ describe('ScenarioSchema', () => {
     }
   });
 
-  it('supports optional constraints (budget_cost_max, delivery_weeks_max)', () => {
+  it('supports all constraint fields', () => {
     const phaseWithConstraints = {
       ...validPhase('big'),
       constraints: {
-        sla: 99.95,
-        budget_cost_max: 50,
-        compliance_level: 'high' as const,
-        delivery_weeks_max: 12,
+        min_perf: 5,
+        min_rel: 4,
+        max_cx: 7,
+        min_domains: 3,
+        required_tags: ['cache', 'db'],
+        constraint_penalty: 15,
       },
     };
     const result = ScenarioSchema.safeParse({
@@ -167,8 +161,8 @@ describe('ScenarioSchema', () => {
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.phases[1].constraints.budget_cost_max).toBe(50);
-      expect(result.data.phases[1].constraints.delivery_weeks_max).toBe(12);
+      expect(result.data.phases[1].constraints.min_perf).toBe(5);
+      expect(result.data.phases[1].constraints.required_tags).toEqual(['cache', 'db']);
     }
   });
 });
@@ -176,84 +170,116 @@ describe('ScenarioSchema', () => {
 // ---------- Joker ----------
 describe('JokerSchema', () => {
   const validJoker: Joker = {
-    id: 'jk_cache_master',
-    name: 'Cache Master',
-    desc: 'Bonus for caching components',
+    id: 'jk_sla_maniac',
+    name: 'SLA Maniac',
+    desc: 'Multiply when HA deployed',
     rarity: 'uncommon',
-    multiplier: 1.5,
-    condition: { require_all_tags: ['caching'], require_any_tags: [] },
-    reduce_event_penalty: [{ event_id: 'ev_cache_miss', factor: 0.5 }],
+    condition: { require_all_tags: ['ha'], require_any_tags: [] },
+    effect: { type: 'mult', value: 1.3 },
     shop_cost: 3,
   };
 
-  it('parses a valid joker', () => {
+  it('parses a valid mult joker', () => {
     const result = JokerSchema.safeParse(validJoker);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.multiplier).toBe(1.5);
+      expect(result.data.effect.type).toBe('mult');
     }
   });
 
-  it('rejects multiplier less than 1', () => {
-    const result = JokerSchema.safeParse({ ...validJoker, multiplier: 0.5 });
-    expect(result.success).toBe(false);
+  it('parses a chips joker', () => {
+    const chipsJoker: Joker = {
+      ...validJoker,
+      id: 'jk_data_hoarder',
+      effect: { type: 'chips', value: 3, per_tag: 'db' },
+    };
+    const result = JokerSchema.safeParse(chipsJoker);
+    expect(result.success).toBe(true);
+  });
+
+  it('parses a pattern_enhance joker', () => {
+    const enhancer: Joker = {
+      ...validJoker,
+      id: 'jk_pattern_amp',
+      effect: { type: 'pattern_enhance', extra_mult: 1 },
+    };
+    const result = JokerSchema.safeParse(enhancer);
+    expect(result.success).toBe(true);
+  });
+
+  it('parses a hand_size joker', () => {
+    const hand: Joker = {
+      ...validJoker,
+      id: 'jk_card_counter',
+      effect: { type: 'hand_size', value: 2 },
+    };
+    const result = JokerSchema.safeParse(hand);
+    expect(result.success).toBe(true);
+  });
+
+  it('parses a discard joker', () => {
+    const discard: Joker = {
+      ...validJoker,
+      id: 'jk_reroll',
+      effect: { type: 'discard', value: 2 },
+    };
+    const result = JokerSchema.safeParse(discard);
+    expect(result.success).toBe(true);
+  });
+
+  it('parses a gold joker', () => {
+    const gold: Joker = {
+      ...validJoker,
+      id: 'jk_gold_mine',
+      effect: { type: 'gold', value: 5, per: 'pattern' },
+    };
+    const result = JokerSchema.safeParse(gold);
+    expect(result.success).toBe(true);
+  });
+
+  it('parses a combo_mult joker', () => {
+    const combo: Joker = {
+      ...validJoker,
+      id: 'jk_combo',
+      effect: { type: 'combo_mult', min_patterns: 2, value: 1.5 },
+    };
+    const result = JokerSchema.safeParse(combo);
+    expect(result.success).toBe(true);
   });
 
   it('supports optional special condition', () => {
-    const withSpecial = {
+    const withSpecial: Joker = {
       ...validJoker,
-      condition: { require_all_tags: [], require_any_tags: [], special: 'all_same_category' },
+      condition: { require_all_tags: [], require_any_tags: [], special: 'capacity_under_budget' },
     };
     const result = JokerSchema.safeParse(withSpecial);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.condition.special).toBe('all_same_category');
+      expect(result.data.condition.special).toBe('capacity_under_budget');
     }
   });
-});
 
-// ---------- Event ----------
-describe('EventSchema', () => {
-  const validEvent: Event = {
-    id: 'ev_ddos',
-    name: 'DDoS Attack',
-    desc: 'Distributed denial of service attack',
-    severity: 4,
-    targets_risks: ['network_flood', 'no_waf'],
-    penalty: { perf: -5, rel: -3, cx: -2 },
-    flavor_text: 'Your servers are under heavy load!',
-  };
-
-  it('parses a valid event', () => {
-    const result = EventSchema.safeParse(validEvent);
+  it('supports null special condition', () => {
+    const withNull: Joker = {
+      ...validJoker,
+      condition: { require_all_tags: [], require_any_tags: [], special: null },
+    };
+    const result = JokerSchema.safeParse(withNull);
     expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.severity).toBe(4);
-    }
-  });
-
-  it('rejects severity below 1', () => {
-    const result = EventSchema.safeParse({ ...validEvent, severity: 0 });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects severity above 5', () => {
-    const result = EventSchema.safeParse({ ...validEvent, severity: 6 });
-    expect(result.success).toBe(false);
   });
 });
 
 // ---------- Pattern ----------
 describe('PatternSchema', () => {
   const validPattern: Pattern = {
-    id: 'pat_micro',
-    name: 'Microservices',
-    desc: 'Distributed microservices pattern',
-    requires_all_tags: ['api_gateway', 'service_mesh'],
-    requires_any_tags: ['container', 'serverless'],
+    id: 'p_read_path',
+    name: 'Read Path',
+    desc: 'Cache + DB synergy',
+    requires_all_tags: ['cache', 'db'],
+    requires_any_tags: [],
     effects: {
-      mult_add: 0.2,
-      delta: { perf: 1, rel: 2, cx: 0 },
+      mult_add: 2,
+      chips_add: 8,
     },
   };
 
@@ -261,20 +287,30 @@ describe('PatternSchema', () => {
     const result = PatternSchema.safeParse(validPattern);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.effects.mult_add).toBe(0.2);
+      expect(result.data.effects.mult_add).toBe(2);
+      expect(result.data.effects.chips_add).toBe(8);
     }
   });
 
-  it('supports optional global_event_penalty_factor', () => {
-    const withFactor = {
+  it('supports optional requires_domain', () => {
+    const withDomain = {
       ...validPattern,
-      effects: { ...validPattern.effects, global_event_penalty_factor: 0.8 },
+      requires_domain: { domain: 'data', count: 2 },
     };
-    const result = PatternSchema.safeParse(withFactor);
+    const result = PatternSchema.safeParse(withDomain);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.effects.global_event_penalty_factor).toBe(0.8);
+      expect(result.data.requires_domain?.domain).toBe('data');
     }
+  });
+
+  it('supports null requires_domain', () => {
+    const withNull = {
+      ...validPattern,
+      requires_domain: null,
+    };
+    const result = PatternSchema.safeParse(withNull);
+    expect(result.success).toBe(true);
   });
 });
 
@@ -292,18 +328,6 @@ describe('SuperPatternSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('parses a risk_and_pattern trigger with event_immunity reward', () => {
-    const sp: SuperPattern = {
-      id: 'sp_risk_zero',
-      name: 'Risk Zero',
-      desc: 'Mitigate all risks while maintaining patterns',
-      trigger: { type: 'risk_and_pattern', min_patterns: 2, max_exposed_risks: 0 },
-      reward: { type: 'event_immunity' },
-    };
-    const result = SuperPatternSchema.safeParse(sp);
-    expect(result.success).toBe(true);
-  });
-
   it('parses a budget_and_pattern trigger with capacity_refund reward', () => {
     const sp: SuperPattern = {
       id: 'sp_lean',
@@ -316,13 +340,25 @@ describe('SuperPatternSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('parses a dimension_flip reward', () => {
+  it('parses a domain_count trigger with chips_burst reward', () => {
     const sp: SuperPattern = {
-      id: 'sp_flip',
-      name: 'Dimension Flip',
-      desc: 'Flip scoring dimensions',
+      id: 'sp_diversity',
+      name: 'Domain Diversity',
+      desc: 'Use many domains',
+      trigger: { type: 'domain_count', min_domains: 4, min_patterns: 2 },
+      reward: { type: 'chips_burst', chips_add: 20 },
+    };
+    const result = SuperPatternSchema.safeParse(sp);
+    expect(result.success).toBe(true);
+  });
+
+  it('parses a gold_burst reward', () => {
+    const sp: SuperPattern = {
+      id: 'sp_gold',
+      name: 'Gold Rush',
+      desc: 'Earn gold',
       trigger: { type: 'pattern_count', min_patterns: 4 },
-      reward: { type: 'dimension_flip', flip_dimension: 'perf', from: 'low', to: 'high' },
+      reward: { type: 'gold_burst', gold: 10 },
     };
     const result = SuperPatternSchema.safeParse(sp);
     expect(result.success).toBe(true);
@@ -335,6 +371,18 @@ describe('SuperPatternSchema', () => {
       desc: 'Bad trigger',
       trigger: { type: 'invalid', min_patterns: 1 },
       reward: { type: 'mult_burst', mult_add: 1.0 },
+    };
+    const result = SuperPatternSchema.safeParse(bad);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects invalid reward type', () => {
+    const bad = {
+      id: 'sp_bad',
+      name: 'Bad',
+      desc: 'Bad reward',
+      trigger: { type: 'pattern_count', min_patterns: 1 },
+      reward: { type: 'event_immunity' },
     };
     const result = SuperPatternSchema.safeParse(bad);
     expect(result.success).toBe(false);
@@ -384,7 +432,7 @@ describe('SchoolSchema', () => {
         baseline_overrides: { perf: 10 },
         scoring_overrides: { bonus_round: true },
         constraint_overrides: { max_latency: 200 },
-        free_components: ['comp_lb'],
+        free_components: ['cmp_audit_log'],
         special_rules: { double_events: true, extra_capacity: 5 },
       },
     };
@@ -392,7 +440,7 @@ describe('SchoolSchema', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.modifiers.draft_options).toBe(5);
-      expect(result.data.modifiers.free_components).toEqual(['comp_lb']);
+      expect(result.data.modifiers.free_components).toEqual(['cmp_audit_log']);
     }
   });
 });
@@ -400,67 +448,85 @@ describe('SchoolSchema', () => {
 // ---------- BossRule ----------
 describe('BossRuleSchema', () => {
   const validBossRule: BossRule = {
-    id: 'br_no_cache',
+    id: 'boss_cache_disabled',
     name: 'No Caching Allowed',
-    desc: 'Caching components are banned',
-    effect: 'ban_tag',
-    modifier: { banned_tag: 'caching' },
+    desc: 'Caching components cost double',
+    effect: 'capacity_multiplier',
+    modifier: { capacity_multiplier_for_tags: ['cache'], factor: 2.0 },
   };
 
   it('parses a valid boss rule', () => {
     const result = BossRuleSchema.safeParse(validBossRule);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.effect).toBe('ban_tag');
+      expect(result.data.effect).toBe('capacity_multiplier');
     }
   });
 });
 
 // ---------- Tarot ----------
 describe('TarotSchema', () => {
-  it('parses a valid info_reveal tarot with string effect', () => {
+  it('parses a valid add_tag tarot', () => {
     const tarot: Tarot = {
-      id: 'tar_reveal_events',
-      name: 'The Oracle',
-      desc: 'Reveals upcoming events',
-      type: 'info_reveal',
-      effect: 'show_next_events',
-      shop_cost: 2,
+      id: 't_sharding',
+      name: 'Sharding',
+      desc: 'Add replication tag to db components',
+      effect: { type: 'add_tag', target_tag: 'db', add_tag: 'replication' },
+      shop_cost: 3,
       rarity: 'common',
     };
     const result = TarotSchema.safeParse(tarot);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.type).toBe('info_reveal');
-      expect(result.data.effect).toBe('show_next_events');
+      expect(result.data.effect.type).toBe('add_tag');
     }
   });
 
-  it('parses a valid state_modify tarot with object effect', () => {
+  it('parses a valid add_chips tarot', () => {
     const tarot: Tarot = {
-      id: 'tar_capacity_boost',
-      name: 'The Builder',
-      desc: 'Increases capacity budget',
-      type: 'state_modify',
-      effect: { capacity_add: 3, duration: 'phase' },
+      id: 't_overclock',
+      name: 'Overclock',
+      desc: 'Add chips to target',
+      effect: { type: 'add_chips', target_tag: '*', chips: 5 },
       shop_cost: 4,
+      rarity: 'uncommon',
+    };
+    const result = TarotSchema.safeParse(tarot);
+    expect(result.success).toBe(true);
+  });
+
+  it('parses a valid change_domain tarot', () => {
+    const tarot: Tarot = {
+      id: 't_pivot',
+      name: 'Pivot',
+      desc: 'Change domain',
+      effect: { type: 'change_domain', from_domain: '*', to_domain: '*' },
+      shop_cost: 3,
       rarity: 'rare',
     };
     const result = TarotSchema.safeParse(tarot);
     expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.type).toBe('state_modify');
-      expect(result.data.effect).toEqual({ capacity_add: 3, duration: 'phase' });
-    }
   });
 
-  it('rejects an invalid type', () => {
+  it('parses a valid reduce_cost tarot', () => {
+    const tarot: Tarot = {
+      id: 't_optimize',
+      name: 'Optimize',
+      desc: 'Reduce capacity cost',
+      effect: { type: 'reduce_cost', target_tag: '*', amount: 2 },
+      shop_cost: 3,
+      rarity: 'uncommon',
+    };
+    const result = TarotSchema.safeParse(tarot);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an invalid effect type', () => {
     const result = TarotSchema.safeParse({
-      id: 'tar_bad',
+      id: 't_bad',
       name: 'Bad',
       desc: 'Bad tarot',
-      type: 'attack',
-      effect: 'nope',
+      effect: { type: 'nuke', target: 'all' },
       shop_cost: 1,
       rarity: 'common',
     });
@@ -473,9 +539,9 @@ describe('Index re-exports', () => {
   it('exports all schemas from index', async () => {
     const index = await import('../index.js');
     expect(index.ComponentSchema).toBeDefined();
+    expect(index.DomainSchema).toBeDefined();
     expect(index.ScenarioSchema).toBeDefined();
     expect(index.JokerSchema).toBeDefined();
-    expect(index.EventSchema).toBeDefined();
     expect(index.PatternSchema).toBeDefined();
     expect(index.SuperPatternSchema).toBeDefined();
     expect(index.SchoolSchema).toBeDefined();

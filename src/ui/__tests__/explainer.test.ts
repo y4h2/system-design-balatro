@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { formatSettlement } from '../explainer.js';
 import type { PhaseSettlement } from '../../engine/phase-runner.js';
-import type { Component, Pattern, SuperPattern, Joker, Event } from '../../schemas/index.js';
+import type { Component, Pattern, SuperPattern, Joker } from '../../schemas/index.js';
 
 // ── Helpers to build mock data ──────────────────────────────────────
 
@@ -10,15 +10,12 @@ function mockComponent(overrides: Partial<Component> = {}): Component {
     id: 'cmp_test',
     name: 'Test Component',
     desc: 'A test component',
+    domain: 'compute',
     tags: ['test'],
+    base_chips: 5,
     delta: { perf: 1, rel: 1, cx: 0 },
     capacity_cost: 10,
-    exposes: [],
-    seals: [],
-    requires_tags: [],
-    conflicts_tags: [],
     rarity: 'common',
-    category: 'functional',
     ...overrides,
   };
 }
@@ -32,7 +29,7 @@ function mockPattern(overrides: Partial<Pattern> = {}): Pattern {
     requires_any_tags: [],
     effects: {
       mult_add: 2,
-      delta: { perf: 1, rel: 0, cx: 0 },
+      chips_add: 5,
     },
     ...overrides,
   };
@@ -55,23 +52,9 @@ function mockJoker(overrides: Partial<Joker> = {}): Joker {
     name: 'Test Joker',
     desc: 'A test joker',
     rarity: 'common',
-    multiplier: 1.5,
     condition: { require_all_tags: [], require_any_tags: [] },
-    reduce_event_penalty: [],
+    effect: { type: 'mult', value: 1.5 },
     shop_cost: 10,
-    ...overrides,
-  };
-}
-
-function mockEvent(overrides: Partial<Event> = {}): Event {
-  return {
-    id: 'event_test',
-    name: 'Test Event',
-    desc: 'A test event',
-    severity: 2,
-    targets_risks: ['test_risk'],
-    penalty: { perf: -2, rel: -1, cx: 1 },
-    flavor_text: 'Something bad happened',
     ...overrides,
   };
 }
@@ -79,19 +62,19 @@ function mockEvent(overrides: Partial<Event> = {}): Event {
 // ── Full settlement fixture ─────────────────────────────────────────
 
 function fullSettlement(): PhaseSettlement {
-  const cdn = mockComponent({ id: 'cmp_cdn', name: 'CDN', tags: ['cdn', 'edge'] });
-  const cache = mockComponent({ id: 'cmp_cache', name: 'Cache', tags: ['cache'] });
+  const cdn = mockComponent({ id: 'cmp_cdn', name: 'CDN', domain: 'network', tags: ['cdn', 'edge'] });
+  const cache = mockComponent({ id: 'cmp_cache', name: 'Cache', domain: 'data', tags: ['cache'] });
   const sqlDb = mockComponent({
     id: 'cmp_sql_db',
     name: 'SQL Database',
+    domain: 'data',
     tags: ['db', 'sql', 'primary_db'],
-    exposes: ['db_single_point', 'slow_query'],
   });
 
   const readBeast = mockPattern({
     id: 'pattern_read_beast',
     name: 'Read Beast',
-    effects: { mult_add: 2, delta: { perf: 1, rel: 0, cx: 0 } },
+    effects: { mult_add: 2, chips_add: 8 },
   });
 
   const fullStack = mockSuperPattern({
@@ -102,14 +85,7 @@ function fullSettlement(): PhaseSettlement {
   const hotspotTamer = mockJoker({
     id: 'jk_hotspot_tamer',
     name: 'Hotspot Tamer',
-    multiplier: 1.2,
-  });
-
-  const dbSlowEvent = mockEvent({
-    id: 'event_db_slow',
-    name: 'DB Slow Query Storm',
-    targets_risks: ['slow_query', 'db_single_point'],
-    penalty: { perf: -3, rel: -2, cx: 1 },
+    effect: { type: 'mult', value: 1.2 },
   });
 
   return {
@@ -121,28 +97,18 @@ function fullSettlement(): PhaseSettlement {
     triggeredPatterns: [readBeast],
     triggeredSuperPatterns: [fullStack],
     superPatternRewards: [],
-    riskReport: {
-      allExposed: ['db_single_point', 'slow_query'],
-      allSealed: [],
-      exposed: ['db_single_point', 'slow_query'],
-      sealed: [],
-    },
-    eventResults: [
-      {
-        event: dbSlowEvent,
-        hit: true,
-        matchedRisks: ['slow_query', 'db_single_point'],
-        penalty: { perf: -3, rel: -2, cx: 1 },
-      },
-    ],
     activeJokers: [hotspotTamer],
-    jokerMultipliers: [1.2],
-    chips: 9.2,
+    baseChips: 15,
+    patternChips: 8,
+    jokerChips: 0,
+    chips: 23,
     mult: 3.6,
-    constraintPenalty: 5,
+    constraintResult: { passed: true, penalty: 0, failures: [] },
+    constraintPenalty: 0,
     bossPenalty: 0,
-    finalScore: 28,
-    targetScore: 12,
+    jokerGold: 5,
+    finalScore: 83,
+    targetScore: 50,
     passed: true,
   };
 }
@@ -150,7 +116,12 @@ function fullSettlement(): PhaseSettlement {
 // ── Minimal settlement (empty arrays) ───────────────────────────────
 
 function minimalSettlement(): PhaseSettlement {
-  const gateway = mockComponent({ id: 'cmp_api_gw', name: 'API Gateway', tags: ['gateway'] });
+  const gateway = mockComponent({
+    id: 'cmp_api_gw',
+    name: 'API Gateway',
+    domain: 'network',
+    tags: ['gateway'],
+  });
 
   return {
     deployedComponents: [gateway],
@@ -161,20 +132,17 @@ function minimalSettlement(): PhaseSettlement {
     triggeredPatterns: [],
     triggeredSuperPatterns: [],
     superPatternRewards: [],
-    riskReport: {
-      allExposed: [],
-      allSealed: [],
-      exposed: [],
-      sealed: [],
-    },
-    eventResults: [],
     activeJokers: [],
-    jokerMultipliers: [],
-    chips: 2.6,
+    baseChips: 5,
+    patternChips: 0,
+    jokerChips: 0,
+    chips: 5,
     mult: 1,
+    constraintResult: { passed: true, penalty: 0, failures: [] },
     constraintPenalty: 0,
     bossPenalty: 0,
-    finalScore: 3,
+    jokerGold: 0,
+    finalScore: 5,
     targetScore: 100,
     passed: false,
   };
@@ -201,15 +169,10 @@ describe('formatSettlement', () => {
       expect(output).toContain('130');
     });
 
-    it('contains risk report with exposed risks', () => {
-      expect(output).toContain('风险敞口');
-      expect(output).toContain('db_single_point');
-      expect(output).toContain('slow_query');
-    });
-
-    it('contains triggered pattern names and mult', () => {
+    it('contains triggered pattern names with chips and mult', () => {
       expect(output).toContain('Read Beast');
-      expect(output).toContain('+2');
+      expect(output).toContain('+8');   // chips_add
+      expect(output).toContain('+2');   // mult_add
     });
 
     it('contains triggered super pattern', () => {
@@ -217,30 +180,13 @@ describe('formatSettlement', () => {
       expect(output).toContain('超级牌型');
     });
 
-    it('contains active joker with multiplier', () => {
+    it('contains active joker with effect', () => {
       expect(output).toContain('Hotspot Tamer');
       expect(output).toContain('1.2');
     });
 
-    it('contains event results with hit status', () => {
-      expect(output).toContain('DB Slow Query Storm');
-      expect(output).toContain('命中');
-    });
-
-    it('contains event penalty details', () => {
-      expect(output).toContain('perf');
-      expect(output).toContain('rel');
-      expect(output).toContain('cx');
-    });
-
-    it('contains event matched risks', () => {
-      expect(output).toContain('攻击风险');
-      expect(output).toContain('slow_query');
-    });
-
-    it('contains constraint penalty', () => {
-      expect(output).toContain('约束扣分');
-      expect(output).toContain('5');
+    it('contains constraint info when all passed', () => {
+      expect(output).toContain('约束');
     });
 
     it('contains final panel values', () => {
@@ -250,13 +196,20 @@ describe('formatSettlement', () => {
     });
 
     it('contains score breakdown with chips and mult', () => {
-      expect(output).toContain('Chips: 9.2');
+      expect(output).toContain('Chips');
+      expect(output).toContain('23');
       expect(output).toContain('3.60');
     });
 
+    it('contains base chips, pattern chips, and joker chips', () => {
+      expect(output).toContain('Base Chips: 15');
+      expect(output).toContain('Pattern Chips: 8');
+      expect(output).toContain('Joker Chips: 0');
+    });
+
     it('contains final score and target', () => {
-      expect(output).toContain('28');
-      expect(output).toContain('12');
+      expect(output).toContain('83');
+      expect(output).toContain('50');
     });
 
     it('contains PASS result', () => {
@@ -264,7 +217,7 @@ describe('formatSettlement', () => {
     });
   });
 
-  describe('minimal settlement (FAIL, empty events/patterns/jokers)', () => {
+  describe('minimal settlement (FAIL, empty patterns/jokers)', () => {
     const output = formatSettlement(minimalSettlement());
 
     it('contains deployed component name', () => {
@@ -276,10 +229,6 @@ describe('formatSettlement', () => {
       expect(output).toContain('110');
     });
 
-    it('shows no risk exposure message', () => {
-      expect(output).toContain('无风险暴露');
-    });
-
     it('shows no pattern triggered message', () => {
       expect(output).toContain('无牌型触发');
     });
@@ -288,70 +237,123 @@ describe('formatSettlement', () => {
       expect(output).toContain('无 Joker 生效');
     });
 
-    it('shows no event message', () => {
-      expect(output).toContain('无事件');
-    });
-
     it('contains FAIL result', () => {
       expect(output).toContain('FAIL');
     });
 
     it('does not contain PASS', () => {
-      // FAIL output should not accidentally match PASS
       expect(output).not.toContain('PASS');
     });
   });
 
-  describe('settlement with sealed risks', () => {
-    it('shows sealed risks', () => {
+  describe('settlement with constraint failures', () => {
+    it('shows constraint failures and penalty', () => {
       const settlement = fullSettlement();
-      settlement.riskReport.sealed = ['db_single_point'];
-      settlement.riskReport.exposed = ['slow_query'];
+      settlement.constraintResult = {
+        passed: false,
+        penalty: 10,
+        failures: ['Must include caching', 'Max 5 components'],
+      };
+      settlement.constraintPenalty = 10;
 
       const output = formatSettlement(settlement);
-      expect(output).toContain('已封堵');
-      expect(output).toContain('db_single_point');
+      expect(output).toContain('Must include caching');
+      expect(output).toContain('Max 5 components');
+      expect(output).toContain('约束扣分');
+      expect(output).toContain('10');
     });
   });
 
-  describe('settlement with event miss', () => {
-    it('shows miss status for event that did not hit', () => {
+  describe('settlement with boss penalty', () => {
+    it('shows boss penalty when nonzero', () => {
       const settlement = fullSettlement();
-      settlement.eventResults = [
-        {
-          event: mockEvent({ name: 'Traffic Spike' }),
-          hit: false,
-          matchedRisks: [],
-          penalty: { perf: 0, rel: 0, cx: 0 },
-        },
+      settlement.bossPenalty = 15;
+
+      const output = formatSettlement(settlement);
+      expect(output).toContain('Boss');
+      expect(output).toContain('15');
+    });
+  });
+
+  describe('settlement with joker effect types', () => {
+    it('shows chips joker effect', () => {
+      const settlement = fullSettlement();
+      settlement.activeJokers = [
+        mockJoker({
+          id: 'jk_chips',
+          name: 'Data Hoarder',
+          effect: { type: 'chips', value: 3, per_tag: 'db' },
+        }),
       ];
 
       const output = formatSettlement(settlement);
-      expect(output).toContain('Traffic Spike');
-      expect(output).toContain('未命中');
-      expect(output).toContain('无惩罚');
+      expect(output).toContain('Data Hoarder');
+      expect(output).toContain('chips');
+      expect(output).toContain('db');
+    });
+
+    it('shows pattern_enhance joker effect', () => {
+      const settlement = fullSettlement();
+      settlement.activeJokers = [
+        mockJoker({
+          id: 'jk_enhance',
+          name: 'Pattern Amp',
+          effect: { type: 'pattern_enhance', extra_mult: 1 },
+        }),
+      ];
+
+      const output = formatSettlement(settlement);
+      expect(output).toContain('Pattern Amp');
+      expect(output).toContain('mult');
+      expect(output).toContain('pattern');
+    });
+
+    it('shows gold joker effect', () => {
+      const settlement = fullSettlement();
+      settlement.activeJokers = [
+        mockJoker({
+          id: 'jk_gold',
+          name: 'Gold Mine',
+          effect: { type: 'gold', value: 5, per: 'pattern' },
+        }),
+      ];
+
+      const output = formatSettlement(settlement);
+      expect(output).toContain('Gold Mine');
+      expect(output).toContain('gold');
+    });
+
+    it('shows combo_mult joker effect', () => {
+      const settlement = fullSettlement();
+      settlement.activeJokers = [
+        mockJoker({
+          id: 'jk_combo',
+          name: 'Combo King',
+          effect: { type: 'combo_mult', min_patterns: 2, value: 1.5 },
+        }),
+      ];
+
+      const output = formatSettlement(settlement);
+      expect(output).toContain('Combo King');
+      expect(output).toContain('1.5');
     });
   });
 
   describe('output structure', () => {
-    it('includes all nine sections in order', () => {
+    it('includes all sections in order', () => {
       const output = formatSettlement(fullSettlement());
 
       const sectionOrder = [
         '方案摘要',
-        '风险报告',
         '牌型触发',
         'Joker 生效',
-        '事件回放',
-        '约束校验',
+        '约束',
         '最终面板',
         '评分明细',
-        '结果',   // Implicit via PASS/FAIL
       ];
 
-      // Verify that each section appears, and the earlier sections come before later ones
       let lastIndex = -1;
-      for (const section of sectionOrder.slice(0, -1)) { // Skip '结果' since it's implicit
+      for (const section of sectionOrder) {
         const idx = output.indexOf(section);
         expect(idx).toBeGreaterThan(lastIndex);
         lastIndex = idx;

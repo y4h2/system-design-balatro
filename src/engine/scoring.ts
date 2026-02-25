@@ -11,14 +11,13 @@ function clamp(v: number, min: number, max: number): number {
 }
 
 /**
- * Compute panel from baseline + component deltas + pattern deltas + event penalties.
+ * Compute panel from baseline + component deltas.
  * Each dimension is clamped to [0, 10].
+ * Used for constraint checking (P/R/CX thresholds).
  */
 export function computePanel(
   deployed: Component[],
   baseline: Panel,
-  patternDeltas: Panel[] = [],
-  eventPenalties: Panel[] = [],
 ): Panel {
   let perf = baseline.perf;
   let rel = baseline.rel;
@@ -30,18 +29,6 @@ export function computePanel(
     cx += c.delta.cx;
   }
 
-  for (const d of patternDeltas) {
-    perf += d.perf;
-    rel += d.rel;
-    cx += d.cx;
-  }
-
-  for (const p of eventPenalties) {
-    perf += p.perf;
-    rel += p.rel;
-    cx += p.cx;
-  }
-
   return {
     perf: clamp(perf, 0, 10),
     rel: clamp(rel, 0, 10),
@@ -50,33 +37,32 @@ export function computePanel(
 }
 
 /**
- * Chips = wP * Perf + wR * Rel - wX * Cx
- * When cxPositive is true, Cx adds instead of subtracts.
+ * New scoring formula:
+ * chips = Σ deployed.base_chips + Σ pattern.chips_add + jokerChipBonus
  */
 export function computeChips(
-  panel: Panel,
-  weights: { perf: number; rel: number; cx: number },
-  cxPositive: boolean = false,
+  deployed: Component[],
+  patternChips: number,
+  jokerChips: number,
 ): number {
-  const cxContribution = cxPositive ? weights.cx * panel.cx : -weights.cx * panel.cx;
-  return weights.perf * panel.perf + weights.rel * panel.rel + cxContribution;
+  const baseChips = deployed.reduce((sum, c) => sum + c.base_chips, 0);
+  return baseChips + patternChips + jokerChips;
 }
 
 /**
- * Mult = (1 + sum(pattern_mult_add) + sum(super_pattern_mult_add)) * product(joker_multipliers)
+ * mult = (1 + Σ pattern.mult_add + jokerMultAdds) × Π jokerMultipliers
  */
 export function computeMult(
   patterns: Pattern[],
-  superPatternMultAdds: { mult_add?: number }[],
+  jokerMultAdds: number,
   jokerMultipliers: number[],
 ): number {
   let additive = 1;
   for (const p of patterns) {
     additive += p.effects.mult_add;
   }
-  for (const sp of superPatternMultAdds) {
-    if (sp.mult_add) additive += sp.mult_add;
-  }
+  additive += jokerMultAdds;
+
   let mult = additive;
   for (const jm of jokerMultipliers) {
     mult *= jm;
@@ -85,7 +71,7 @@ export function computeMult(
 }
 
 /**
- * Final = round(Chips * Mult - ConstraintPenalty)
+ * Final = round(chips × mult - constraintPenalty)
  */
 export function computeFinalScore(
   chips: number,

@@ -123,8 +123,8 @@ export default function TitleScreen() {
               {/* Stats grid */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-[var(--color-text-muted)]">Draft</span>
-                  <span className="font-display font-medium">{m.draft_rounds}R</span>
+                  <span className="text-[var(--color-text-muted)]">Initial Pool</span>
+                  <span className="font-display font-medium">{m.draft_rounds}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[var(--color-text-muted)]">Jokers</span>

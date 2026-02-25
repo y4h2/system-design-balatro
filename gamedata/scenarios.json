@@ -1,126 +1,108 @@
 [
   {
     "id": "scenario_shortlink",
-    "name": "\u77ed\u94fe\u63a5\u7cfb\u7edf",
-    "desc": "\u8bfb\u591a\u5199\u5c11\uff0c\u70ed\u70b9\u660e\u663e\uff0c\u6210\u672c\u654f\u611f",
+    "name": "短链接系统",
+    "desc": "读多写少，热点明显，成本敏感",
     "tags": ["read_heavy", "hotspot", "cost_sensitive"],
     "initial": { "target_qps": 20000, "peak_factor": 5, "data_gb": 200 },
     "phases": [
       {
         "blind": "small",
-        "subtitle": "MVP - \u5148\u628a\u77ed\u94fe\u8df3\u8f6c\u8dd1\u901a",
+        "subtitle": "MVP - 先把短链跳转跑通",
         "capacity_budget": 110,
-        "target_score": 20,
-        "weights": { "perf": 1.0, "rel": 0.6, "cx": 0.4 },
-        "constraints": { "sla": 99.0, "compliance_level": "low" },
-        "event_pool_severity": [1, 2],
+        "target_score": 30,
+        "constraints": { "min_perf": 3, "constraint_penalty": 10 },
         "skippable": true,
         "skip_reward": { "type": "tarot_pick", "pick": 2, "from": 4 }
       },
       {
         "blind": "big",
-        "subtitle": "Beta - \u65e5\u6d3b 10 \u4e07\uff0c\u5f00\u59cb\u5356\u5e7f\u544a",
+        "subtitle": "Beta - 日活 10 万，开始卖广告",
         "capacity_budget": 90,
-        "target_score": 35,
-        "weights": { "perf": 1.2, "rel": 1.0, "cx": 0.8 },
-        "constraints": { "sla": 99.9, "budget_cost_max": 8, "compliance_level": "low" },
-        "event_pool_severity": [2, 3],
+        "target_score": 60,
+        "constraints": { "min_perf": 4, "min_rel": 3, "constraint_penalty": 15 },
         "skippable": true,
         "skip_reward": { "type": "joker_direct_pick", "pick": 1, "from": "full_pool" }
       },
       {
         "blind": "boss",
-        "subtitle": "\u751f\u4ea7 - \u70ed\u70b9\u8425\u9500\u6d3b\u52a8\uff0c\u6d41\u91cf 10x",
+        "subtitle": "生产 - 热点营销活动，流量 10x",
         "capacity_budget": 70,
-        "target_score": 48,
-        "weights": { "perf": 1.4, "rel": 1.2, "cx": 1.0 },
-        "constraints": { "sla": 99.95, "budget_cost_max": 7, "compliance_level": "low" },
+        "target_score": 100,
+        "constraints": { "min_perf": 5, "min_rel": 4, "min_domains": 3, "constraint_penalty": 20 },
         "boss_rule": "cache_disabled",
-        "event_pool_severity": [3, 5],
         "skippable": false
       }
     ]
   },
   {
     "id": "scenario_chat",
-    "name": "\u5373\u65f6\u804a\u5929\u7cfb\u7edf",
-    "desc": "\u4f4e\u5ef6\u8fdf + \u9ad8\u53ef\u7528\uff0c\u8fde\u63a5\u6570\u9ad8\uff0c\u7a81\u523a\u660e\u663e",
+    "name": "即时聊天系统",
+    "desc": "低延迟 + 高可用，连接数高，突刺明显",
     "tags": ["latency_sensitive", "always_on", "burst"],
     "initial": { "target_qps": 5000, "peak_factor": 3, "data_gb": 500 },
     "phases": [
       {
         "blind": "small",
-        "subtitle": "MVP - \u5148\u8ba9\u6d88\u606f\u53d1\u51fa\u53bb",
+        "subtitle": "MVP - 先让消息发出去",
         "capacity_budget": 120,
-        "target_score": 22,
-        "weights": { "perf": 1.2, "rel": 0.8, "cx": 0.5 },
-        "constraints": { "sla": 99.5, "compliance_level": "low" },
-        "event_pool_severity": [1, 2],
+        "target_score": 30,
+        "constraints": { "min_perf": 3, "min_rel": 2, "constraint_penalty": 10 },
         "skippable": true,
         "skip_reward": { "type": "tarot_pick", "pick": 2, "from": 4 }
       },
       {
         "blind": "big",
-        "subtitle": "Beta - \u7528\u6237\u5f00\u59cb\u4ed8\u8d39\u4e86",
+        "subtitle": "Beta - 用户开始付费了",
         "capacity_budget": 100,
-        "target_score": 40,
-        "weights": { "perf": 1.3, "rel": 1.2, "cx": 0.8 },
-        "constraints": { "sla": 99.9, "budget_cost_max": 10, "compliance_level": "medium" },
-        "event_pool_severity": [2, 3],
+        "target_score": 65,
+        "constraints": { "min_perf": 4, "min_rel": 4, "min_domains": 2, "constraint_penalty": 15 },
         "skippable": true,
         "skip_reward": { "type": "joker_direct_pick", "pick": 1, "from": "full_pool" }
       },
       {
         "blind": "boss",
-        "subtitle": "\u751f\u4ea7\u538b\u6d4b - \u767e\u4e07\u7528\u6237\u5927\u4fc3",
+        "subtitle": "生产压测 - 百万用户大促",
         "capacity_budget": 80,
-        "target_score": 52,
-        "weights": { "perf": 1.5, "rel": 1.5, "cx": 1.0 },
-        "constraints": { "sla": 99.99, "budget_cost_max": 8, "compliance_level": "high" },
+        "target_score": 110,
+        "constraints": { "min_perf": 5, "min_rel": 5, "min_domains": 3, "required_tags": ["security"], "constraint_penalty": 25 },
         "boss_rule": "blind_review",
-        "event_pool_severity": [4, 5],
         "skippable": false
       }
     ]
   },
   {
     "id": "scenario_orders",
-    "name": "\u8ba2\u5355\u7cfb\u7edf",
-    "desc": "\u4e00\u81f4\u6027/\u5e42\u7b49/\u5ba1\u8ba1\u4f18\u5148\uff0c\u5199\u591a\u8bfb\u591a\u5747\u8861",
+    "name": "订单系统",
+    "desc": "一致性/幂等/审计优先，写多读多均衡",
     "tags": ["consistency", "audit_required", "pii"],
     "initial": { "target_qps": 3000, "peak_factor": 2, "data_gb": 1000 },
     "phases": [
       {
         "blind": "small",
-        "subtitle": "MVP - \u80fd\u4e0b\u5355\u80fd\u4ed8\u6b3e",
+        "subtitle": "MVP - 能下单能付款",
         "capacity_budget": 120,
-        "target_score": 22,
-        "weights": { "perf": 0.8, "rel": 1.0, "cx": 0.5 },
-        "constraints": { "sla": 99.5, "compliance_level": "low" },
-        "event_pool_severity": [1, 2],
+        "target_score": 30,
+        "constraints": { "min_rel": 3, "constraint_penalty": 10 },
         "skippable": true,
         "skip_reward": { "type": "tarot_pick", "pick": 2, "from": 4 }
       },
       {
         "blind": "big",
-        "subtitle": "Beta - \u63a5\u5165\u652f\u4ed8\u6e20\u9053\uff0c\u5408\u89c4\u5ba1\u67e5",
+        "subtitle": "Beta - 接入支付渠道，合规审查",
         "capacity_budget": 95,
-        "target_score": 42,
-        "weights": { "perf": 1.0, "rel": 1.3, "cx": 0.9 },
-        "constraints": { "sla": 99.9, "budget_cost_max": 10, "compliance_level": "medium" },
-        "event_pool_severity": [2, 4],
+        "target_score": 65,
+        "constraints": { "min_rel": 4, "required_tags": ["security"], "constraint_penalty": 15 },
         "skippable": true,
         "skip_reward": { "type": "joker_direct_pick", "pick": 1, "from": "full_pool" }
       },
       {
         "blind": "boss",
-        "subtitle": "\u751f\u4ea7 - \u53cc\u5341\u4e00\u5927\u4fc3 + \u91d1\u878d\u5ba1\u8ba1",
+        "subtitle": "生产 - 双十一大促 + 金融审计",
         "capacity_budget": 75,
-        "target_score": 50,
-        "weights": { "perf": 1.0, "rel": 1.6, "cx": 1.2 },
-        "constraints": { "sla": 99.95, "budget_cost_max": 9, "compliance_level": "high" },
+        "target_score": 110,
+        "constraints": { "min_rel": 5, "min_domains": 3, "required_tags": ["security", "monitor"], "constraint_penalty": 25 },
         "boss_rule": "tech_debt_explosion",
-        "event_pool_severity": [4, 5],
         "skippable": false
       }
     ]

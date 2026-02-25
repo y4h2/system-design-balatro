@@ -1,47 +1,119 @@
 [
   {
-    "id": "pattern_read_beast",
-    "name": "\u8bfb\u4f18\u5316",
-    "desc": "CDN/\u7f13\u5b58/\u526f\u672c\u63d0\u5347\u8bfb\u6027\u80fd",
-    "requires_all_tags": ["cache"],
-    "requires_any_tags": ["cdn", "read_replica"],
-    "effects": {
-      "mult_add": 2,
-      "delta": { "perf": 1, "rel": 0, "cx": 0 }
-    }
-  },
-  {
-    "id": "pattern_shock_absorber",
-    "name": "\u524a\u5cf0\u586b\u8c37",
-    "desc": "\u9650\u6d41 + \u961f\u5217 + Worker \u6297\u7a81\u523a",
-    "requires_all_tags": ["rate_limit", "queue", "worker"],
+    "id": "p_domain_pair",
+    "name": "领域配对",
+    "desc": "2 张同 domain",
+    "requires_all_tags": [],
     "requires_any_tags": [],
-    "effects": {
-      "mult_add": 2,
-      "delta": { "perf": 0, "rel": 1, "cx": 1 }
-    }
+    "requires_domain": null,
+    "effects": { "mult_add": 1, "chips_add": 5 }
   },
   {
-    "id": "pattern_always_on",
-    "name": "\u9ad8\u53ef\u7528",
-    "desc": "\u591a\u53ef\u7528\u533a + \u5065\u5eb7\u68c0\u67e5 + \u7194\u65ad/\u6545\u969c\u8f6c\u79fb",
-    "requires_all_tags": ["multi_az", "health_check"],
-    "requires_any_tags": ["circuit_breaker", "failover"],
-    "effects": {
-      "mult_add": 3,
-      "delta": { "perf": 0, "rel": 2, "cx": 1 }
-    }
-  },
-  {
-    "id": "pattern_debug_loop",
-    "name": "\u53ef\u89c2\u6d4b\u95ed\u73af",
-    "desc": "\u6307\u6807/\u94fe\u8def/\u544a\u8b66\u964d\u4f4e\u4e8b\u6545\u60e9\u7f5a",
-    "requires_all_tags": ["metrics", "tracing", "alerting"],
+    "id": "p_wide_spectrum",
+    "name": "广谱架构",
+    "desc": "4+ 不同 domain",
+    "requires_all_tags": [],
     "requires_any_tags": [],
-    "effects": {
-      "mult_add": 1,
-      "delta": { "perf": 0, "rel": 1, "cx": 0 },
-      "global_event_penalty_factor": 0.7
-    }
+    "requires_domain": null,
+    "effects": { "mult_add": 2, "chips_add": 8 }
+  },
+  {
+    "id": "p_domain_triple",
+    "name": "领域三连",
+    "desc": "3 张同 domain",
+    "requires_all_tags": [],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "effects": { "mult_add": 3, "chips_add": 10 }
+  },
+  {
+    "id": "p_read_path",
+    "name": "读优化路径",
+    "desc": "cache + db 组成读优化链路",
+    "requires_all_tags": ["cache", "db"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "effects": { "mult_add": 2, "chips_add": 8 }
+  },
+  {
+    "id": "p_write_pipeline",
+    "name": "写入管道",
+    "desc": "queue + db 组成写入管道",
+    "requires_all_tags": ["queue", "db"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "effects": { "mult_add": 2, "chips_add": 8 }
+  },
+  {
+    "id": "p_observability",
+    "name": "可观测闭环",
+    "desc": "monitor + search/deploy 实现可观测",
+    "requires_all_tags": ["monitor"],
+    "requires_any_tags": ["search", "deploy"],
+    "requires_domain": null,
+    "effects": { "mult_add": 3, "chips_add": 10 }
+  },
+  {
+    "id": "p_high_availability",
+    "name": "高可用",
+    "desc": "ha + replication 保障高可用",
+    "requires_all_tags": ["ha", "replication"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "effects": { "mult_add": 3, "chips_add": 10 }
+  },
+  {
+    "id": "p_event_driven",
+    "name": "事件驱动",
+    "desc": "queue + async + compute 事件驱动架构",
+    "requires_all_tags": ["queue", "async", "compute"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "effects": { "mult_add": 3, "chips_add": 10 }
+  },
+  {
+    "id": "p_fortress",
+    "name": "堡垒",
+    "desc": "security + gateway 构建安全堡垒",
+    "requires_all_tags": ["security", "gateway"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "effects": { "mult_add": 2, "chips_add": 6 }
+  },
+  {
+    "id": "p_edge_accel",
+    "name": "边缘加速",
+    "desc": "edge + cache 边缘加速",
+    "requires_all_tags": ["edge", "cache"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "effects": { "mult_add": 2, "chips_add": 6 }
+  },
+  {
+    "id": "p_cqrs",
+    "name": "CQRS",
+    "desc": "db + queue + cache 实现读写分离",
+    "requires_all_tags": ["db", "queue", "cache"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "effects": { "mult_add": 5, "chips_add": 15 }
+  },
+  {
+    "id": "p_zero_downtime",
+    "name": "零停机",
+    "desc": "ha + deploy + monitor 零停机部署",
+    "requires_all_tags": ["ha", "deploy", "monitor"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "effects": { "mult_add": 5, "chips_add": 15 }
+  },
+  {
+    "id": "p_full_stack",
+    "name": "全栈",
+    "desc": "同时触发 3+ 个 Tier 2 牌型",
+    "requires_all_tags": [],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "effects": { "mult_add": 8, "chips_add": 20 }
   }
 ]

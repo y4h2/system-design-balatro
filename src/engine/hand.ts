@@ -1,7 +1,7 @@
 import type { Component } from '../schemas/index.js';
 
 export interface HandState {
-  hand: Component[];        // current hand (max 8)
+  hand: Component[];        // current hand (max 8 + bonus)
   drawPile: Component[];    // remaining cards to draw from
   discardPile: Component[]; // discarded this phase, can't redraw
   discardsRemaining: number;
@@ -17,14 +17,14 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-/** Deal initial hand from component pool */
-export function dealHand(pool: Component[], handSize = 8): HandState {
+/** Deal initial hand from component pool. Supports dynamic hand size from joker bonuses. */
+export function dealHand(pool: Component[], handSize = 8, discards = 3): HandState {
   const shuffled = shuffle(pool);
   return {
     hand: shuffled.slice(0, handSize),
     drawPile: shuffled.slice(handSize),
     discardPile: [],
-    discardsRemaining: 3,
+    discardsRemaining: discards,
   };
 }
 

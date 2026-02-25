@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
+const DomainRequirementSchema = z.object({
+  domain: z.string(),
+  count: z.number(),
+});
+
 const EffectsSchema = z.object({
   mult_add: z.number(),
-  delta: z.object({
-    perf: z.number(),
-    rel: z.number(),
-    cx: z.number(),
-  }),
-  global_event_penalty_factor: z.number().optional(),
+  chips_add: z.number(),
 });
 
 export const PatternSchema = z.object({
@@ -16,6 +16,7 @@ export const PatternSchema = z.object({
   desc: z.string(),
   requires_all_tags: z.array(z.string()),
   requires_any_tags: z.array(z.string()),
+  requires_domain: DomainRequirementSchema.nullable().optional(),
   effects: EffectsSchema,
 });
 

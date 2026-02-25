@@ -37,15 +37,15 @@ function useAnimatedCounter(target: number, duration = 1200, delay = 500) {
 }
 
 export default function SettlementScreen() {
-  const { settlement, currentEvents, continueAfterSettlement } = useGameStore();
+  const { settlement, continueAfterSettlement } = useGameStore();
 
   if (!settlement) return null;
 
   const {
-    panel, chips, mult, constraintPenalty, bossPenalty,
+    panel, chips, mult, constraintPenalty, constraintResult, bossPenalty,
     finalScore, targetScore, passed,
     triggeredPatterns, triggeredSuperPatterns, superPatternRewards,
-    eventResults, activeJokers,
+    activeJokers, baseChips, patternChips, jokerChips, jokerGold,
     capacityUsed, capacityBudget,
     deployedComponents,
   } = settlement;
@@ -87,7 +87,7 @@ export default function SettlementScreen() {
         transition={{ delay: 0.7 }}
         className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl w-full mb-8"
       >
-        {/* Panel */}
+        {/* Panel (constraints check) */}
         <div className="card-base">
           <div className="text-xs text-[var(--color-text-muted)] mb-2">Panel</div>
           <div className="space-y-1 font-display text-sm">
@@ -106,11 +106,38 @@ export default function SettlementScreen() {
           </div>
         </div>
 
-        {/* Chips x Mult */}
+        {/* Chips breakdown */}
+        <div className="card-base">
+          <div className="text-xs text-[var(--color-text-muted)] mb-2">Chips Breakdown</div>
+          <div className="space-y-1 font-display text-sm">
+            <div className="flex justify-between">
+              <span className="text-white">Base</span>
+              <span className="neon-chips">{baseChips}</span>
+            </div>
+            {patternChips > 0 && (
+              <div className="flex justify-between">
+                <span className="text-[var(--color-functional)]">Pattern</span>
+                <span className="text-[var(--color-functional)]">+{patternChips}</span>
+              </div>
+            )}
+            {jokerChips > 0 && (
+              <div className="flex justify-between">
+                <span className="neon-gold">Joker</span>
+                <span className="neon-gold">+{jokerChips}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-white/10 pt-1 mt-1">
+              <span>Total</span>
+              <span className="neon-chips font-bold">{chips}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Score Formula */}
         <div className="card-base">
           <div className="text-xs text-[var(--color-text-muted)] mb-2">Score Formula</div>
           <div className="flex items-center gap-2 font-display">
-            <span className="neon-chips text-xl">{parseFloat(chips.toFixed(1))}</span>
+            <span className="neon-chips text-xl">{chips}</span>
             <span className="text-[var(--color-text-muted)]">x</span>
             <span className="neon-mult text-xl">{mult.toFixed(1)}</span>
           </div>
@@ -139,6 +166,13 @@ export default function SettlementScreen() {
               <span className="text-[var(--color-functional)]">None</span>
             )}
           </div>
+          {constraintResult.failures.length > 0 && (
+            <div className="mt-2 space-y-0.5">
+              {constraintResult.failures.map((f, i) => (
+                <div key={i} className="text-[10px] text-red-400">! {f}</div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Capacity */}
@@ -160,38 +194,20 @@ export default function SettlementScreen() {
           <div className="text-xs text-[var(--color-text-muted)] mb-2">Active Jokers</div>
           {activeJokers.length > 0 ? (
             <div className="space-y-1">
-              {activeJokers.map((j, i) => (
+              {activeJokers.map(j => (
                 <div key={j.id} className="flex justify-between text-xs">
                   <span className="truncate">{j.name}</span>
-                  <span className="neon-mult font-display">x{settlement.jokerMultipliers[i]}</span>
+                  <span className="neon-gold font-display text-[10px]">{j.effect.type}</span>
                 </div>
               ))}
             </div>
           ) : (
             <span className="text-xs text-[var(--color-text-muted)]">None</span>
           )}
-        </div>
-
-        {/* Events */}
-        <div className="card-base">
-          <div className="text-xs text-[var(--color-text-muted)] mb-2">Events</div>
-          {eventResults.length > 0 ? (
-            <div className="space-y-1">
-              {eventResults.map((er, i) => (
-                <div key={i} className="text-xs">
-                  <span className={er.hit ? 'text-red-400' : 'text-[var(--color-functional)]'}>
-                    {er.hit ? '!' : '✓'} {er.event.name}
-                  </span>
-                  {er.hit && (
-                    <span className="text-red-400/70 ml-1">
-                      (P{er.penalty.perf} R{er.penalty.rel} X{er.penalty.cx})
-                    </span>
-                  )}
-                </div>
-              ))}
+          {jokerGold > 0 && (
+            <div className="mt-2 text-xs neon-gold font-display">
+              +{jokerGold} gold earned
             </div>
-          ) : (
-            <span className="text-xs text-[var(--color-text-muted)]">None</span>
           )}
         </div>
       </motion.div>
@@ -214,7 +230,7 @@ export default function SettlementScreen() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.0 + i * 0.1 }}
                 >
-                  <PatternBadge name={p.name} />
+                  <PatternBadge name={`${p.name} (+${p.effects.chips_add} chips, +${p.effects.mult_add} mult)`} />
                 </motion.div>
               ))}
             </div>

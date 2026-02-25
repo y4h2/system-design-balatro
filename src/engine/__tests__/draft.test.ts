@@ -1,37 +1,38 @@
 import { describe, it, expect } from 'vitest';
-import { generateDraftChoices, applyDraftChoice } from '../draft.js';
+import { autoDeal } from '../draft.js';
 import { loadGameData } from '../../data/loader.js';
-import { createGameState } from '../state.js';
 
-describe('Draft', () => {
+describe('autoDeal', () => {
   const data = loadGameData();
-  const scenario = data.scenarios[0];
-  const school = data.schools[0];
 
-  it('generates correct number of choices', () => {
-    const choices = generateDraftChoices(data.components, 3);
-    expect(choices).toHaveLength(3);
+  it('deals the requested number of components', () => {
+    const dealt = autoDeal(data.components, new Set(), 5);
+    expect(dealt).toHaveLength(5);
   });
 
-  it('generates distinct choices', () => {
-    const choices = generateDraftChoices(data.components, 3);
-    const ids = choices.map(c => c.id);
-    expect(new Set(ids).size).toBe(3);
+  it('deals distinct components', () => {
+    const dealt = autoDeal(data.components, new Set(), 5);
+    const ids = dealt.map(c => c.id);
+    expect(new Set(ids).size).toBe(5);
   });
 
-  it('applyDraftChoice adds chosen component to pool', () => {
-    const state = createGameState(scenario, school);
-    const choices = generateDraftChoices(data.components, 3);
-    const picked = choices[0];
-    applyDraftChoice(state, picked);
-    expect(state.componentPool).toContain(picked);
-    expect(state.componentPool.length).toBe(1);
+  it('excludes already-owned components', () => {
+    const ownedIds = new Set([data.components[0].id, data.components[1].id]);
+    const dealt = autoDeal(data.components, ownedIds, 5);
+    for (const c of dealt) {
+      expect(ownedIds.has(c.id)).toBe(false);
+    }
   });
 
-  it('respects school draft_options (Vibe Coding = 2 choices)', () => {
-    const vibeSchool = data.schools.find(s => s.id === 'school_vibe_coding')!;
-    const draftOptions = vibeSchool.modifiers.draft_options ?? 3;
-    const choices = generateDraftChoices(data.components, draftOptions);
-    expect(choices).toHaveLength(2);
+  it('returns fewer if not enough available', () => {
+    const allIds = new Set(data.components.map(c => c.id));
+    const dealt = autoDeal(data.components, allIds, 5);
+    expect(dealt).toHaveLength(0);
+  });
+
+  it('returns all available when count exceeds available', () => {
+    const ownedIds = new Set(data.components.slice(2).map(c => c.id));
+    const dealt = autoDeal(data.components, ownedIds, 100);
+    expect(dealt).toHaveLength(2);
   });
 });

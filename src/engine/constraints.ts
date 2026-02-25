@@ -1,78 +1,67 @@
-export interface ConstraintInput {
-  sla: number;
-  compliance_level: 'low' | 'medium' | 'high';
-  deployedTags: string[];
-  rel: number;
-  capacityUsed: number;
-  capacityBudget: number;
-  hasAuditLog: boolean;
-  hasEncryption: boolean;
-}
+import type { Component, PhaseConstraints } from '../schemas/index.js';
+import type { Panel } from './scoring.js';
 
 export interface ConstraintResult {
-  slaPenalty: number;
-  compliancePenalty: number;
-  capacityPenalty: number;
-  totalPenalty: number;
-  details: string[];
+  passed: boolean;
+  penalty: number;
+  failures: string[];
 }
 
-const HA_TAGS = ['multi_az', 'health_check', 'circuit_breaker', 'failover'];
-
 /**
- * Validate SLA, compliance, and capacity constraints.
- * Returns individual and total penalty scores along with human-readable details.
+ * Validate phase constraints against deployed components and panel values.
+ * Each failed constraint adds its constraint_penalty to the total.
  */
-export function validateConstraints(input: ConstraintInput): ConstraintResult {
-  const details: string[] = [];
-  let slaPenalty = 0;
-  let compliancePenalty = 0;
-  let capacityPenalty = 0;
+export function validateConstraints(
+  panel: Panel,
+  deployed: Component[],
+  constraints: PhaseConstraints,
+): ConstraintResult {
+  const failures: string[] = [];
+  let penaltyCount = 0;
 
-  // ── SLA check ─────────────────────────────────────────────────────
-  const haCount = HA_TAGS.filter(t => input.deployedTags.includes(t)).length;
+  // min_perf check
+  if (constraints.min_perf !== undefined && panel.perf < constraints.min_perf) {
+    failures.push(`P ${panel.perf.toFixed(1)} < required ${constraints.min_perf}`);
+    penaltyCount++;
+  }
 
-  if (input.sla >= 99.99) {
-    if (haCount < 2 || input.rel < 6) {
-      slaPenalty = 20;
-      details.push('SLA 99.99% requires >=2 HA components and rel>=6');
-    }
-  } else if (input.sla >= 99.95) {
-    if (haCount < 1 || input.rel < 5) {
-      slaPenalty = 12;
-      details.push('SLA 99.95% requires >=1 HA component and rel>=5');
-    }
-  } else if (input.sla >= 99.9) {
-    if (input.rel < 4 && haCount === 0) {
-      slaPenalty = 8;
-      details.push('SLA 99.9% requires rel>=4 or HA component');
-    }
-  } else {
-    if (input.rel < 3) {
-      slaPenalty = 5;
-      details.push('Low SLA requires rel>=3');
+  // min_rel check
+  if (constraints.min_rel !== undefined && panel.rel < constraints.min_rel) {
+    failures.push(`R ${panel.rel.toFixed(1)} < required ${constraints.min_rel}`);
+    penaltyCount++;
+  }
+
+  // max_cx check
+  if (constraints.max_cx !== undefined && panel.cx > constraints.max_cx) {
+    failures.push(`CX ${panel.cx.toFixed(1)} > max ${constraints.max_cx}`);
+    penaltyCount++;
+  }
+
+  // min_domains check
+  if (constraints.min_domains !== undefined) {
+    const domains = new Set(deployed.map(c => c.domain));
+    if (domains.size < constraints.min_domains) {
+      failures.push(`${domains.size} domains < required ${constraints.min_domains}`);
+      penaltyCount++;
     }
   }
 
-  // ── Compliance check ──────────────────────────────────────────────
-  if (input.compliance_level === 'high') {
-    if (!input.hasAuditLog || !input.hasEncryption) {
-      compliancePenalty = 15;
-      details.push('High compliance requires audit_log + encryption');
+  // required_tags check
+  if (constraints.required_tags && constraints.required_tags.length > 0) {
+    const deployedTags = new Set(deployed.flatMap(c => c.tags));
+    for (const tag of constraints.required_tags) {
+      if (!deployedTags.has(tag)) {
+        failures.push(`Missing required tag: ${tag}`);
+        penaltyCount++;
+      }
     }
   }
 
-  // ── Capacity check ────────────────────────────────────────────────
-  if (input.capacityUsed > input.capacityBudget) {
-    capacityPenalty = (input.capacityUsed - input.capacityBudget) * 5;
-    details.push(`Over budget by ${input.capacityUsed - input.capacityBudget} points`);
-  }
+  const penalty = penaltyCount * constraints.constraint_penalty;
 
   return {
-    slaPenalty,
-    compliancePenalty,
-    capacityPenalty,
-    totalPenalty: slaPenalty + compliancePenalty + capacityPenalty,
-    details,
+    passed: failures.length === 0,
+    penalty,
+    failures,
   };
 }

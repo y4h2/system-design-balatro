@@ -6,17 +6,13 @@ const SkipRewardSchema = z.object({
   from: z.union([z.number(), z.string()]).optional(),
 });
 
-const ConstraintsSchema = z.object({
-  sla: z.number(),
-  budget_cost_max: z.number().optional(),
-  compliance_level: z.enum(['low', 'medium', 'high']),
-  delivery_weeks_max: z.number().optional(),
-});
-
-const WeightsSchema = z.object({
-  perf: z.number(),
-  rel: z.number(),
-  cx: z.number(),
+const PhaseConstraintsSchema = z.object({
+  min_perf: z.number().optional(),
+  min_rel: z.number().optional(),
+  max_cx: z.number().optional(),
+  min_domains: z.number().optional(),
+  required_tags: z.array(z.string()).optional(),
+  constraint_penalty: z.number(),
 });
 
 const PhaseSchema = z.object({
@@ -24,9 +20,7 @@ const PhaseSchema = z.object({
   subtitle: z.string(),
   capacity_budget: z.number(),
   target_score: z.number(),
-  weights: WeightsSchema,
-  constraints: ConstraintsSchema,
-  event_pool_severity: z.array(z.number()),
+  constraints: PhaseConstraintsSchema,
   skippable: z.boolean().optional().default(false),
   skip_reward: SkipRewardSchema.optional(),
   boss_rule: z.string().optional(),
@@ -51,3 +45,4 @@ export type Scenario = z.infer<typeof ScenarioSchema>;
 export type ScenarioInput = z.input<typeof ScenarioSchema>;
 export type Phase = z.infer<typeof PhaseSchema>;
 export type PhaseInput = z.input<typeof PhaseSchema>;
+export type PhaseConstraints = z.infer<typeof PhaseConstraintsSchema>;
