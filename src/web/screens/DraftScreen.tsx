@@ -38,20 +38,25 @@ export default function DraftScreen() {
             exit={{ opacity: 0, y: -30 }}
             className="flex gap-6"
           >
-            {draftChoices.map((component, i) => (
+            {draftChoices.map((component, i) => {
+              const count = draftChoices.length;
+              const rotation = (i - (count - 1) / 2) * 3;
+              return (
               <motion.div
                 key={component.id}
-                initial={{ opacity: 0, y: 20, rotateZ: -2 }}
-                animate={{ opacity: 1, y: 0, rotateZ: 0 }}
-                transition={{ delay: i * 0.12 }}
-                className="w-52"
+                initial={{ opacity: 0, y: 60, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1, rotateZ: rotation }}
+                whileHover={{ rotateZ: 0, scale: 1.05, y: -10 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20, delay: i * 0.1 }}
+                className="w-40 sm:w-48 md:w-52"
               >
                 <ComponentCard
                   component={component}
                   onClick={() => pickDraftComponent(component)}
                 />
               </motion.div>
-            ))}
+              );
+            })}
           </motion.div>
         </AnimatePresence>
       </div>

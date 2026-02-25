@@ -2,115 +2,212 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 
+const schoolTheme: Record<string, { accent: string; glow: string; icon: string }> = {
+  school_sre:         { accent: '#3498db', glow: 'rgba(52,152,219,0.4)',  icon: '🛡️' },
+  school_startup:     { accent: '#e67e22', glow: 'rgba(230,126,34,0.4)',  icon: '🚀' },
+  school_minimalist:  { accent: '#1abc9c', glow: 'rgba(26,188,156,0.4)',  icon: '◯' },
+  school_compliance:  { accent: '#9b59b6', glow: 'rgba(155,89,182,0.4)',  icon: '🔒' },
+  school_performance: { accent: '#e74c3c', glow: 'rgba(231,76,60,0.4)',   icon: '⚡' },
+  school_vibe_coding: { accent: '#f39c12', glow: 'rgba(243,156,18,0.4)',  icon: '✨' },
+};
+
 export default function TitleScreen() {
   const { gameData, startGame } = useGameStore();
-  const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
+  const [schoolIndex, setSchoolIndex] = useState(0);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
-  const school = selectedSchool ? gameData.schools.find(s => s.id === selectedSchool) : null;
+  const schools = gameData.schools;
+  const currentSchool = schools[schoolIndex];
+  const theme = schoolTheme[currentSchool.id] ?? { accent: '#6b7280', glow: 'rgba(107,114,128,0.4)', icon: '?' };
+
+  const prevSchool = () => {
+    setSchoolIndex((schoolIndex - 1 + schools.length) % schools.length);
+    setSelectedScenario(null);
+  };
+  const nextSchool = () => {
+    setSchoolIndex((schoolIndex + 1) % schools.length);
+    setSelectedScenario(null);
+  };
+
+  const m = currentSchool.modifiers;
 
   return (
-    <div className="min-h-screen flex flex-col items-center py-12 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center py-8 px-4">
       {/* Title */}
       <motion.div
-        initial={{ opacity: 0, y: -30 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-12"
+        className="text-center mb-8"
       >
-        <h1 className="font-display text-5xl font-bold mb-2 neon-chips">
+        <h1 className="font-display text-4xl sm:text-5xl font-bold mb-1 neon-chips">
           System Design
         </h1>
-        <p className="text-lg text-[var(--color-text-muted)]">Architecture Card Game</p>
+        <p className="text-sm text-[var(--color-text-muted)]">Architecture Card Game</p>
       </motion.div>
 
-      {/* School Selection */}
-      <div className="w-full max-w-5xl mb-10">
-        <h2 className="text-xl font-medium mb-4">Choose Your School</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {gameData.schools.map((s, i) => (
-            <motion.button
-              key={s.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              onClick={() => { setSelectedSchool(s.id); setSelectedScenario(null); }}
-              className={`card-base text-left transition-all ${
-                selectedSchool === s.id
-                  ? 'border-[var(--color-chips)] shadow-[var(--glow-chips)]'
-                  : 'hover:border-white/30'
-              }`}
+      {/* Carousel: arrow + card + info + arrow */}
+      <div className="flex items-center gap-4 sm:gap-6 mb-8 w-full max-w-2xl">
+        {/* Left arrow */}
+        <button
+          onClick={prevSchool}
+          className="flex-shrink-0 w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-[var(--color-text-muted)] hover:border-white/50 hover:text-white transition text-xl"
+          aria-label="Previous school"
+        >
+          ‹
+        </button>
+
+        {/* School card + info */}
+        <div className="flex-1 flex flex-col sm:flex-row gap-4 items-stretch">
+          {/* Visual card preview */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSchool.id}
+              initial={{ opacity: 0, scale: 0.9, rotateY: -15 }}
+              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+              exit={{ opacity: 0, scale: 0.9, rotateY: 15 }}
+              transition={{ duration: 0.25 }}
+              className="flex-shrink-0 w-full sm:w-44 h-56 rounded-2xl border-2 flex flex-col items-center justify-center relative overflow-hidden"
+              style={{
+                borderColor: theme.accent,
+                background: `linear-gradient(160deg, ${theme.accent}18 0%, var(--color-surface) 40%, var(--color-surface) 70%, ${theme.accent}10 100%)`,
+                boxShadow: `0 0 30px ${theme.glow}, inset 0 1px 0 rgba(255,255,255,0.06)`,
+              }}
             >
-              <h3 className="font-medium text-base mb-1">{s.name}</h3>
-              <p className="text-xs text-[var(--color-text-muted)] mb-3 line-clamp-3">{s.desc}</p>
-              <div className="flex gap-3 text-[10px] text-[var(--color-text-muted)]">
-                <span>Draft: {s.modifiers.draft_rounds}R</span>
-                <span>Jokers: {s.modifiers.joker_slots}</span>
-                <span>Budget: {s.modifiers.capacity_budget_offset >= 0 ? '+' : ''}{s.modifiers.capacity_budget_offset}</span>
+              {/* Decorative corner lines */}
+              <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 rounded-tl-sm" style={{ borderColor: `${theme.accent}50` }} />
+              <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 rounded-br-sm" style={{ borderColor: `${theme.accent}50` }} />
+
+              {/* Icon */}
+              <span className="text-5xl mb-3 select-none" style={{ filter: `drop-shadow(0 0 8px ${theme.glow})` }}>
+                {theme.icon}
+              </span>
+
+              {/* School name on card */}
+              <span className="font-display text-sm font-bold tracking-wider text-center px-3" style={{ color: theme.accent }}>
+                {currentSchool.name}
+              </span>
+
+              {/* Index dots */}
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {schools.map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-1.5 h-1.5 rounded-full transition-all"
+                    style={{
+                      background: i === schoolIndex ? theme.accent : 'rgba(255,255,255,0.2)',
+                      boxShadow: i === schoolIndex ? `0 0 4px ${theme.accent}` : 'none',
+                    }}
+                  />
+                ))}
               </div>
-            </motion.button>
-          ))}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Info panel */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSchool.id}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
+              className="flex-1 rounded-xl bg-[var(--color-surface)] border border-white/10 p-4 flex flex-col"
+            >
+              <h3 className="font-display font-bold text-lg mb-1" style={{ color: theme.accent }}>
+                {currentSchool.name}
+              </h3>
+              <p className="text-sm text-[var(--color-text-muted)] mb-4 italic">
+                "{currentSchool.desc}"
+              </p>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-[var(--color-text-muted)]">Draft</span>
+                  <span className="font-display font-medium">{m.draft_rounds}R</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--color-text-muted)]">Jokers</span>
+                  <span className="font-display font-medium">{m.joker_slots}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--color-text-muted)]">Budget</span>
+                  <span className="font-display font-medium">
+                    {m.capacity_budget_offset >= 0 ? '+' : ''}{m.capacity_budget_offset}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--color-text-muted)]">Repair</span>
+                  <span className="font-display font-medium">{m.repair_count}</span>
+                </div>
+              </div>
+
+              {/* Special modifiers hint */}
+              {m.capacity_discount_tags && m.capacity_discount_tags.length > 0 && (
+                <div className="mt-3 text-[11px] text-[var(--color-text-muted)] border-t border-white/5 pt-2">
+                  Discount tags: {m.capacity_discount_tags.slice(0, 3).join(', ')}
+                  {m.capacity_discount_tags.length > 3 && ` +${m.capacity_discount_tags.length - 3}`}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
+
+        {/* Right arrow */}
+        <button
+          onClick={nextSchool}
+          className="flex-shrink-0 w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-[var(--color-text-muted)] hover:border-white/50 hover:text-white transition text-xl"
+          aria-label="Next school"
+        >
+          ›
+        </button>
       </div>
 
-      {/* Scenario Selection (appears after school is selected) */}
-      <AnimatePresence>
-        {selectedSchool && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="w-full max-w-5xl mb-10"
-          >
-            <h2 className="text-xl font-medium mb-4">Choose Your Scenario</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {gameData.scenarios.map((sc, i) => (
-                <motion.button
-                  key={sc.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  onClick={() => setSelectedScenario(sc.id)}
-                  className={`card-base text-left transition-all ${
-                    selectedScenario === sc.id
-                      ? 'border-[var(--color-chips)] shadow-[var(--glow-chips)]'
-                      : 'hover:border-white/30'
-                  }`}
-                >
-                  <h3 className="font-medium text-base mb-1">{sc.name}</h3>
-                  <p className="text-xs text-[var(--color-text-muted)] mb-3">{sc.desc}</p>
-                  <div className="space-y-1">
-                    {sc.phases.map((p, pi) => (
-                      <div key={pi} className="flex justify-between text-[10px]">
-                        <span className={`uppercase ${p.blind === 'boss' ? 'text-red-400' : 'text-[var(--color-text-muted)]'}`}>
-                          {p.blind}
-                        </span>
-                        <span className="text-[var(--color-text-muted)]">
-                          Target: {p.target_score} | Cap: {p.capacity_budget}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Scenario selector */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="w-full max-w-2xl mb-8"
+      >
+        <div className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider mb-3 text-center">
+          Scenario
+        </div>
+        <div className="flex gap-3 justify-center flex-wrap">
+          {gameData.scenarios.map((sc) => (
+            <button
+              key={sc.id}
+              onClick={() => setSelectedScenario(sc.id)}
+              className={`px-4 py-2.5 rounded-xl border-2 transition-all text-left min-w-[140px] ${
+                selectedScenario === sc.id
+                  ? 'border-[var(--color-chips)] bg-[var(--color-chips)]/8 shadow-[var(--glow-chips)]'
+                  : 'border-white/10 bg-[var(--color-surface)] hover:border-white/25'
+              }`}
+            >
+              <div className="font-medium text-sm">{sc.name}</div>
+              <div className="text-[11px] text-[var(--color-text-muted)] mt-0.5 line-clamp-1">{sc.desc}</div>
+            </button>
+          ))}
+        </div>
+      </motion.div>
 
-      {/* Start Button */}
-      <AnimatePresence>
-        {selectedSchool && selectedScenario && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            onClick={() => startGame(selectedSchool, selectedScenario)}
-            className="px-12 py-4 rounded-xl bg-[var(--color-chips)] text-black font-bold text-xl hover:brightness-110 transition-all shadow-[var(--glow-chips)]"
-          >
-            Start Game
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Start Game button - always visible, disabled until scenario selected */}
+      <button
+        onClick={() => selectedScenario && startGame(currentSchool.id, selectedScenario)}
+        disabled={!selectedScenario}
+        className="px-14 py-4 rounded-2xl font-bold text-lg transition-all disabled:cursor-not-allowed"
+        style={{
+          background: selectedScenario
+            ? `linear-gradient(135deg, ${theme.accent}, ${theme.accent}cc)`
+            : 'rgba(255,255,255,0.08)',
+          color: selectedScenario ? '#000' : 'rgba(255,255,255,0.3)',
+          boxShadow: selectedScenario
+            ? `0 0 24px ${theme.glow}, 0 4px 12px rgba(0,0,0,0.3)`
+            : 'none',
+        }}
+      >
+        开始游戏
+      </button>
     </div>
   );
 }

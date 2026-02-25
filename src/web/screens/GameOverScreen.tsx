@@ -48,7 +48,7 @@ export default function GameOverScreen() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="flex gap-6 mb-10"
+        className="flex flex-col sm:flex-row gap-4 sm:gap-6 mb-10"
       >
         {results.map((result, i) => (
           <motion.div
@@ -56,7 +56,7 @@ export default function GameOverScreen() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 + i * 0.15 }}
-            className={`w-48 card-base text-center ${
+            className={`w-full sm:w-48 card-base text-center ${
               result.passed
                 ? 'border-[var(--color-functional)]'
                 : result.skipped

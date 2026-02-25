@@ -33,9 +33,9 @@ export default function ShopScreen() {
   if (!gameState || !shopInventory) return null;
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col md:flex-row">
       {/* Left sidebar */}
-      <div className="w-56 border-r border-white/5 p-4 bg-[var(--color-surface)]/40 flex flex-col">
+      <div className="w-full md:w-56 border-b md:border-b-0 md:border-r border-white/5 p-4 bg-[var(--color-surface)]/40 flex flex-col">
         <h2 className="text-xl font-medium mb-4">Shop</h2>
         <GoldDisplay amount={gameState.gold} />
 

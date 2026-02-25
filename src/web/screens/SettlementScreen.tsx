@@ -1,6 +1,40 @@
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import PatternBadge from '../components/PatternBadge';
+
+function useAnimatedCounter(target: number, duration = 1200, delay = 500) {
+  const [display, setDisplay] = useState(0);
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+
+    const timeout = setTimeout(() => {
+      let start: number | null = null;
+      let raf: number;
+
+      const step = (ts: number) => {
+        if (!start) start = ts;
+        const elapsed = ts - start;
+        const t = Math.min(elapsed / duration, 1);
+        const eased = 1 - (1 - t) * (1 - t); // ease-out-quad
+        setDisplay(Math.round(target * eased));
+        if (t < 1) {
+          raf = requestAnimationFrame(step);
+        }
+      };
+
+      raf = requestAnimationFrame(step);
+      return () => cancelAnimationFrame(raf);
+    }, delay);
+
+    return () => clearTimeout(timeout);
+  }, [target, duration, delay]);
+
+  return display;
+}
 
 export default function SettlementScreen() {
   const { settlement, currentEvents, continueAfterSettlement } = useGameStore();
@@ -15,6 +49,8 @@ export default function SettlementScreen() {
     capacityUsed, capacityBudget,
     deployedComponents,
   } = settlement;
+
+  const animatedScore = useAnimatedCounter(finalScore, 1200, 500);
 
   return (
     <div className="min-h-screen flex flex-col items-center py-10 px-4">
@@ -38,7 +74,7 @@ export default function SettlementScreen() {
         transition={{ delay: 0.5 }}
         className="text-center mb-8"
       >
-        <div className="font-display text-4xl font-bold neon-chips mb-2">{finalScore}</div>
+        <div className="font-display text-4xl font-bold neon-chips mb-2">{animatedScore}</div>
         <div className="text-[var(--color-text-muted)]">
           Target: <span className="font-display">{targetScore}</span>
         </div>
@@ -74,7 +110,7 @@ export default function SettlementScreen() {
         <div className="card-base">
           <div className="text-xs text-[var(--color-text-muted)] mb-2">Score Formula</div>
           <div className="flex items-center gap-2 font-display">
-            <span className="neon-chips text-xl">{chips}</span>
+            <span className="neon-chips text-xl">{parseFloat(chips.toFixed(1))}</span>
             <span className="text-[var(--color-text-muted)]">x</span>
             <span className="neon-mult text-xl">{mult.toFixed(1)}</span>
           </div>

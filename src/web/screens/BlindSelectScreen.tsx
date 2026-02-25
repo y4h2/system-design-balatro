@@ -37,7 +37,7 @@ export default function BlindSelectScreen() {
       </div>
 
       {/* Phase cards */}
-      <div className="flex gap-6 mb-10">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 mb-10">
         {phases.map((phase, i) => {
           const isCurrent = i === currentIdx;
           const isPast = i < currentIdx;
@@ -54,7 +54,7 @@ export default function BlindSelectScreen() {
                 scale: isCurrent ? 1.05 : 1,
               }}
               transition={{ delay: i * 0.1 }}
-              className={`w-56 rounded-xl border-2 p-5 bg-gradient-to-b ${blindBg[phase.blind]} ${
+              className={`w-full sm:w-56 rounded-xl border-2 p-5 bg-gradient-to-b ${blindBg[phase.blind]} ${
                 isCurrent
                   ? `${blindColors[phase.blind]} shadow-lg`
                   : 'border-white/10'
@@ -96,7 +96,7 @@ export default function BlindSelectScreen() {
 
               {/* Boss rule warning */}
               {phase.boss_rule && (
-                <div className="mt-3 px-2 py-1.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] text-center">
+                <div className="mt-3 px-2 py-1.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] text-center">
                   Boss Rule: {phase.boss_rule}
                 </div>
               )}

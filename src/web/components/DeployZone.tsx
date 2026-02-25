@@ -13,7 +13,7 @@ export default function DeployZone({ components, onUndeploy }: DeployZoneProps) 
       <div className="text-xs text-[var(--color-text-muted)] mb-3 uppercase tracking-wider">
         Deploy Zone ({components.length} deployed)
       </div>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 max-h-[35vh] overflow-y-auto">
         <AnimatePresence>
           {components.map(c => (
             <motion.div
@@ -21,7 +21,7 @@ export default function DeployZone({ components, onUndeploy }: DeployZoneProps) 
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: -20 }}
-              className="w-44"
+              className="w-36 sm:w-40 md:w-44"
             >
               <ComponentCard
                 component={c}

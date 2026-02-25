@@ -93,33 +93,61 @@ html, body {
 
 /* Card base style */
 .card-base {
-  background: var(--color-surface);
+  background: linear-gradient(145deg, var(--color-surface-light) 0%, var(--color-surface) 30%);
   border: 2px solid var(--color-surface-light);
   border-radius: 12px;
   padding: 12px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .card-base:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 /* Card rarity borders */
 .card-common { border-color: var(--color-common); }
-.card-uncommon { border-color: var(--color-uncommon); box-shadow: 0 0 8px rgba(155, 89, 182, 0.3); }
-.card-rare { border-color: var(--color-rare); box-shadow: 0 0 12px rgba(241, 196, 15, 0.4); }
+.card-uncommon {
+  border-color: var(--color-uncommon);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 8px rgba(155, 89, 182, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.card-rare {
+  border-color: var(--color-rare);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 12px rgba(241, 196, 15, 0.4), 0 0 30px rgba(241, 196, 15, 0.15), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
 
 /* Card selected state */
 .card-selected {
   transform: translateY(-8px) scale(1.03);
-  box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+  box-shadow: 0 0 20px rgba(46, 204, 113, 0.5), inset 0 0 30px rgba(46, 204, 113, 0.08);
   border-color: var(--color-functional) !important;
+  background: linear-gradient(135deg, rgba(46, 204, 113, 0.06) 0%, var(--color-surface) 50%);
 }
 
 /* Pattern badge glow */
 .pattern-glow {
   box-shadow: var(--glow-pattern);
+}
+
+/* Focus states */
+.card-base:focus-visible {
+  outline: 2px solid var(--color-chips);
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-chips);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Scrollbar styling */

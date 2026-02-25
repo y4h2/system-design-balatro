@@ -8,10 +8,20 @@ interface JokerCardProps {
 }
 
 export default function JokerCard({ joker, active = true, showPrice, onClick }: JokerCardProps) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <div
       className={`card-base card-${joker.rarity} cursor-pointer ${!active ? 'opacity-50' : ''}`}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      role="button"
     >
       <div className="flex items-center justify-between mb-1">
         <span className="text-sm font-medium truncate">{joker.name}</span>
