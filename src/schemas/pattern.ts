@@ -17,6 +17,7 @@ export const PatternSchema = z.object({
   requires_all_tags: z.array(z.string()),
   requires_any_tags: z.array(z.string()),
   requires_domain: DomainRequirementSchema.nullable().optional(),
+  platform: z.string().optional(),
   effects: EffectsSchema,
 });
 

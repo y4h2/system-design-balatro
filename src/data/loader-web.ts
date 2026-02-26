@@ -8,6 +8,7 @@ import {
   SchoolSchema,
   BossRuleSchema,
   TarotSchema,
+  PlatformSchema,
 } from '../schemas/index.js';
 
 import componentsJson from '../../gamedata/components.json';
@@ -18,6 +19,7 @@ import superPatternsJson from '../../gamedata/super_patterns.json';
 import schoolsJson from '../../gamedata/schools.json';
 import bossRulesJson from '../../gamedata/boss_rules.json';
 import tarotsJson from '../../gamedata/tarots.json';
+import platformsJson from '../../gamedata/platforms.json';
 
 function parseArray<T>(data: unknown, schema: z.ZodType<T>): T[] {
   return z.array(schema).parse(data);
@@ -36,6 +38,7 @@ export function loadGameDataWeb() {
     schools: parseArray(schoolsJson, SchoolSchema),
     bossRules: parseArray(bossRulesJson, BossRuleSchema),
     tarots: parseArray(tarotsJson, TarotSchema),
+    platforms: parseArray(platformsJson, PlatformSchema),
   };
   return cached;
 }

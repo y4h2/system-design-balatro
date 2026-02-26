@@ -1,0 +1,84 @@
+[
+  {
+    "id": "aws",
+    "name": "AWS",
+    "desc": "最全面的托管生态，丰富的托管服务降低运维成本",
+    "positioning": "最全面的托管生态",
+    "icon": "☁️",
+    "accent": "#FF9900",
+    "glow": "rgba(255,153,0,0.4)",
+    "passive": {
+      "type": "capacity_discount",
+      "factor": 0.9,
+      "desc": "专属牌 capacity -10%"
+    },
+    "mechanic": {
+      "id": "multi_region",
+      "name": "Multi-Region",
+      "desc": "部署 2+ 个 [ha] 组件时，所有组件 Rel +1"
+    },
+    "exclusive_pattern_id": "p_serverless_full_stack"
+  },
+  {
+    "id": "gcp",
+    "name": "GCP",
+    "desc": "数据与AI领域的王者，数据处理能力无人能及",
+    "positioning": "数据与AI强项",
+    "icon": "🔷",
+    "accent": "#4285F4",
+    "glow": "rgba(66,133,244,0.4)",
+    "passive": {
+      "type": "chips_bonus",
+      "bonus": 2,
+      "match_tags": ["db", "search"],
+      "desc": "[db]/[search] 组件 +2 chips"
+    },
+    "mechanic": {
+      "id": "bigdata_pipeline",
+      "name": "BigData Pipeline",
+      "desc": "3+ data domain 组件时触发隐藏Pattern「数据湖」"
+    },
+    "exclusive_pattern_id": "p_data_lake"
+  },
+  {
+    "id": "azure",
+    "name": "Azure",
+    "desc": "企业级合规与混合云方案，安全和可靠性最有保障",
+    "positioning": "企业合规",
+    "icon": "🔶",
+    "accent": "#0078D4",
+    "glow": "rgba(0,120,212,0.4)",
+    "passive": {
+      "type": "capacity_discount",
+      "factor": 0.85,
+      "match_tags": ["security", "ha"],
+      "desc": "[security]/[ha] 组件 capacity -15%"
+    },
+    "mechanic": {
+      "id": "compliance_shield",
+      "name": "Compliance Shield",
+      "desc": "required_tags:[security] 约束自动满足"
+    },
+    "exclusive_pattern_id": "p_enterprise_hybrid"
+  },
+  {
+    "id": "selfhosted",
+    "name": "自建",
+    "desc": "完全掌控一切，以复杂度换取自由度的硬核之路",
+    "positioning": "硬核 DIY",
+    "icon": "🔧",
+    "accent": "#6B7280",
+    "glow": "rgba(107,114,128,0.4)",
+    "passive": {
+      "type": "capacity_discount",
+      "factor": 1.2,
+      "desc": "所有组件 capacity +20%"
+    },
+    "mechanic": {
+      "id": "full_control",
+      "name": "Full Control",
+      "desc": "无超容量惩罚，但所有组件 CX +1"
+    },
+    "exclusive_pattern_id": "p_diy_full_stack"
+  }
+]

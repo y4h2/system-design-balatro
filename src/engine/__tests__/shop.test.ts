@@ -18,8 +18,21 @@ import {
 
 const data = loadGameData();
 
+const mockPlatform = {
+  id: 'aws' as const,
+  name: 'AWS',
+  desc: 'test',
+  positioning: 'test',
+  icon: '☁️',
+  accent: '#FF9900',
+  glow: 'rgba(255,153,0,0.4)',
+  passive: { type: 'capacity_discount' as const, factor: 0.9, desc: 'test' },
+  mechanic: { id: 'multi_region', name: 'Multi-Region', desc: 'test' },
+  exclusive_pattern_id: 'p_serverless_full_stack',
+};
+
 function makeState() {
-  return createGameState(data.scenarios[0], data.schools[0]);
+  return createGameState(data.scenarios[0], data.schools[0], mockPlatform);
 }
 
 // ── Pricing by rarity ──
@@ -65,6 +78,7 @@ describe('generateShopInventory', () => {
       data.tarots,
       [],
       [],
+      5,
     );
     expect(inv.components.length).toBeLessThanOrEqual(3);
     expect(inv.jokers.length).toBeLessThanOrEqual(3);
@@ -79,6 +93,7 @@ describe('generateShopInventory', () => {
       data.tarots,
       ownedIds,
       [],
+      5,
     );
     for (const c of inv.components) {
       expect(ownedIds).not.toContain(c.id);
@@ -93,6 +108,7 @@ describe('generateShopInventory', () => {
       data.tarots,
       [],
       ownedJokerIds,
+      5,
     );
     for (const j of inv.jokers) {
       expect(ownedJokerIds).not.toContain(j.id);
@@ -106,6 +122,7 @@ describe('generateShopInventory', () => {
       data.tarots.slice(0, 1),
       [],
       [],
+      5,
     );
     expect(inv.components).toHaveLength(1);
     expect(inv.jokers).toHaveLength(1);

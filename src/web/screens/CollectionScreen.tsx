@@ -9,7 +9,24 @@ import PatternBadge from '../components/PatternBadge';
 import { domainColors } from '../icons/cardIcons';
 import { detectPatterns } from '../../engine/patterns.js';
 import { computePanel, computeChips, computeMult, computeFinalScore } from '../../engine/scoring.js';
-import type { Component, Joker, Tarot, Pattern, SuperPattern } from '../../schemas/index.js';
+import { cardLore } from '../data/cardLore';
+import type { Component, Joker, Tarot, Pattern, SuperPattern, Platform } from '../../schemas/index.js';
+import type { PackType } from '../components/TarotPack';
+
+const platformColors: Record<string, string> = {
+  generic: '#9ca3af',
+  aws: '#FF9900',
+  gcp: '#4285F4',
+  azure: '#0078D4',
+  selfhosted: '#6B7280',
+};
+const platformLabels: Record<string, string> = {
+  generic: '通用',
+  aws: 'AWS',
+  gcp: 'GCP',
+  azure: 'Azure',
+  selfhosted: '自建',
+};
 
 type Tab = 'components' | 'jokers' | 'tarots' | 'packs' | 'patterns';
 
@@ -23,15 +40,23 @@ const tabs: { key: Tab; label: string }[] = [
 
 const domains = ['compute', 'data', 'network', 'defense', 'platform'] as const;
 
+type SelectedItem =
+  | { type: 'component'; data: Component }
+  | { type: 'joker'; data: Joker }
+  | { type: 'tarot'; data: Tarot }
+  | { type: 'pack'; data: PackType };
+
 export default function CollectionScreen() {
   const { gameData } = useGameStore();
   const setScreen = useGameStore(s => s.setScreen);
   const [activeTab, setActiveTab] = useState<Tab>('components');
   const [domainFilter, setDomainFilter] = useState<string | null>(null);
+  const [platformFilter, setPlatformFilter] = useState<string | null>(null);
   const [testBench, setTestBench] = useState<Component[]>([]);
+  const [selected, setSelected] = useState<SelectedItem | null>(null);
 
   const addToTest = (c: Component) => {
-    if (testBench.length < 5) {
+    if (testBench.length < 5 && !testBench.some((t, _) => t === c)) {
       setTestBench(prev => [...prev, c]);
     }
   };
@@ -40,7 +65,6 @@ export default function CollectionScreen() {
   };
   const clearTest = () => setTestBench([]);
 
-  // Compute patterns and score for test bench
   const testResult = useMemo(() => {
     if (testBench.length === 0) return null;
     const triggered = detectPatterns(testBench, gameData.patterns);
@@ -52,6 +76,13 @@ export default function CollectionScreen() {
     const finalScore = computeFinalScore(chips, mult, 0);
     return { triggered, panel, chips, mult, finalScore };
   }, [testBench, gameData.patterns]);
+
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    setDomainFilter(null);
+    setPlatformFilter(null);
+    setSelected(null);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -72,7 +103,7 @@ export default function CollectionScreen() {
         {tabs.map(tab => (
           <button
             key={tab.key}
-            onClick={() => { setActiveTab(tab.key); setDomainFilter(null); }}
+            onClick={() => handleTabChange(tab.key)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
               activeTab === tab.key
                 ? 'bg-white/10 text-white'
@@ -91,21 +122,65 @@ export default function CollectionScreen() {
         ))}
       </div>
 
-      {/* Content — leave room for test bench */}
-      <div className="flex-1 overflow-y-auto px-6 py-4" style={{ paddingBottom: testBench.length > 0 ? 320 : 4 }}>
-        {activeTab === 'components' && (
-          <ComponentsTab
-            components={gameData.components}
-            domainFilter={domainFilter}
-            setDomainFilter={setDomainFilter}
-            onCardClick={addToTest}
-          />
-        )}
-        {activeTab === 'jokers' && <JokersTab jokers={gameData.jokers} />}
-        {activeTab === 'tarots' && <TarotsTab tarots={gameData.tarots} />}
-        {activeTab === 'packs' && <PacksTab />}
-        {activeTab === 'patterns' && (
-          <PatternsTab patterns={gameData.patterns} superPatterns={gameData.superPatterns} />
+      {/* Main content: left grid + right detail panel */}
+      <div className="flex-1 flex overflow-hidden" style={{ paddingBottom: testBench.length > 0 ? 220 : 0 }}>
+        {/* Left: card grid */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {activeTab === 'components' && (
+            <ComponentsTab
+              components={gameData.components}
+              platforms={gameData.platforms}
+              domainFilter={domainFilter}
+              setDomainFilter={setDomainFilter}
+              platformFilter={platformFilter}
+              setPlatformFilter={setPlatformFilter}
+              selectedId={selected?.type === 'component' ? selected.data.id : null}
+              onSelect={(c) => setSelected({ type: 'component', data: c })}
+            />
+          )}
+          {activeTab === 'jokers' && (
+            <JokersTab
+              jokers={gameData.jokers}
+              selectedId={selected?.type === 'joker' ? selected.data.id : null}
+              onSelect={(j) => setSelected({ type: 'joker', data: j })}
+            />
+          )}
+          {activeTab === 'tarots' && (
+            <TarotsTab
+              tarots={gameData.tarots}
+              selectedId={selected?.type === 'tarot' ? selected.data.id : null}
+              onSelect={(tt) => setSelected({ type: 'tarot', data: tt })}
+            />
+          )}
+          {activeTab === 'packs' && (
+            <PacksTab
+              selectedId={selected?.type === 'pack' ? selected.data.id : null}
+              onSelect={(p) => setSelected({ type: 'pack', data: p })}
+            />
+          )}
+          {activeTab === 'patterns' && (
+            <PatternsTab patterns={gameData.patterns} superPatterns={gameData.superPatterns} />
+          )}
+        </div>
+
+        {/* Right: detail panel (hidden for patterns tab) */}
+        {activeTab !== 'patterns' && (
+          <div className="w-[360px] shrink-0 border-l border-white/10 overflow-y-auto bg-[var(--color-surface)]/40">
+            {selected ? (
+              <DetailPanel
+                item={selected}
+                onAddToTest={activeTab === 'components' ? addToTest : undefined}
+                testBenchFull={testBench.length >= 5}
+              />
+            ) : (
+              <EmptyDetail tab={activeTab} counts={{
+                components: gameData.components.length,
+                jokers: gameData.jokers.length,
+                tarots: gameData.tarots.length,
+                packs: PACK_CATALOG.length,
+              }} />
+            )}
+          </div>
         )}
       </div>
 
@@ -143,7 +218,6 @@ export default function CollectionScreen() {
             {/* Results panel */}
             {testResult && (
               <div className="w-72 shrink-0 space-y-2">
-                {/* Patterns triggered */}
                 <div>
                   <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                     {t('common.patterns')}
@@ -159,14 +233,12 @@ export default function CollectionScreen() {
                   </div>
                 </div>
 
-                {/* Panel values */}
                 <div className="flex gap-3 text-xs">
                   <span className="text-[var(--color-perf)]">P {testResult.panel.perf.toFixed(1)}</span>
                   <span className="text-[var(--color-rel)]">R {testResult.panel.rel.toFixed(1)}</span>
                   <span className="text-[var(--color-cx)]">CX {testResult.panel.cx.toFixed(1)}</span>
                 </div>
 
-                {/* Score */}
                 <div className="flex items-center gap-3">
                   <div>
                     <div className="text-[10px] text-[var(--color-text-muted)]">{t('common.chips')}</div>
@@ -184,7 +256,6 @@ export default function CollectionScreen() {
                   </div>
                 </div>
 
-                {/* Tags summary */}
                 <div className="flex flex-wrap gap-1">
                   {[...new Set(testBench.flatMap(c => c.tags))].map(tag => (
                     <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-[var(--color-text-muted)]">
@@ -201,26 +272,283 @@ export default function CollectionScreen() {
   );
 }
 
+/* ─── Detail Panel ─── */
+
+function DetailPanel({
+  item,
+  onAddToTest,
+  testBenchFull,
+}: {
+  item: SelectedItem;
+  onAddToTest?: (c: Component) => void;
+  testBenchFull: boolean;
+}) {
+  const lore = cardLore[getItemId(item)];
+
+  return (
+    <div className="p-5 space-y-4">
+      {/* Color bar */}
+      <div
+        className="h-1 rounded-full"
+        style={{ backgroundColor: getItemColor(item) }}
+      />
+
+      {/* Name */}
+      <h2 className="text-lg font-bold">{getItemName(item)}</h2>
+
+      {/* Stats section */}
+      <div className="space-y-2">
+        {item.type === 'component' && <ComponentStats component={item.data} />}
+        {item.type === 'joker' && <JokerStats joker={item.data} />}
+        {item.type === 'tarot' && <TarotStats tarot={item.data} />}
+        {item.type === 'pack' && <PackStats pack={item.data} />}
+      </div>
+
+      {/* Add to test bench button */}
+      {item.type === 'component' && onAddToTest && (
+        <button
+          onClick={() => onAddToTest(item.data)}
+          disabled={testBenchFull}
+          className={`w-full py-2 rounded-lg text-sm font-medium transition ${
+            testBenchFull
+              ? 'bg-white/5 text-[var(--color-text-muted)] cursor-not-allowed'
+              : 'bg-white/10 text-white hover:bg-white/20'
+          }`}
+        >
+          {testBenchFull ? '测试台已满 (5/5)' : '添加到测试台'}
+        </button>
+      )}
+
+      {/* Lore section */}
+      {lore && (
+        <div className="border-t border-white/10 pt-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-[var(--color-text-muted)] uppercase tracking-wider">典故</span>
+            <span className="text-xs opacity-40">ⓘ</span>
+          </div>
+          <p className="text-sm font-medium text-white/90 leading-relaxed">{lore.l2}</p>
+          <p className="text-[13px] text-[var(--color-text-muted)] leading-relaxed">{lore.l3}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ComponentStats({ component }: { component: Component }) {
+  const domainColor = domainColors[component.domain] ?? '#888';
+  const platColor = platformColors[component.platform] ?? '#888';
+  const platLabel = platformLabels[component.platform] ?? component.platform;
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <span
+          className="text-[10px] font-bold px-2 py-0.5 rounded uppercase"
+          style={{ backgroundColor: domainColor + '30', color: domainColor }}
+        >
+          {t(`domain.${component.domain}`)}
+        </span>
+        {component.platform !== 'generic' && (
+          <span
+            className="text-[10px] font-bold px-2 py-0.5 rounded"
+            style={{ backgroundColor: platColor + '25', color: platColor }}
+          >
+            {platLabel}
+          </span>
+        )}
+        <span className="text-[10px] text-[var(--color-text-muted)]">{component.rarity}</span>
+      </div>
+      <p className="text-xs text-[var(--color-text-muted)]">{component.desc}</p>
+
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <span className="text-[var(--color-text-muted)]">{t('common.chips')}: </span>
+          <span className="neon-chips font-display">+{component.base_chips}</span>
+        </div>
+        <div>
+          <span className="text-[var(--color-text-muted)]">{t('card.cap')}: </span>
+          <span className="font-display">{component.capacity_cost}</span>
+        </div>
+      </div>
+
+      <div className="flex gap-4 text-xs">
+        {component.delta.perf !== 0 && (
+          <span className="text-[var(--color-perf)]">P {component.delta.perf > 0 ? '+' : ''}{component.delta.perf}</span>
+        )}
+        {component.delta.rel !== 0 && (
+          <span className="text-[var(--color-rel)]">R {component.delta.rel > 0 ? '+' : ''}{component.delta.rel}</span>
+        )}
+        {component.delta.cx !== 0 && (
+          <span className="text-[var(--color-cx)]">CX {component.delta.cx > 0 ? '+' : ''}{component.delta.cx}</span>
+        )}
+        {component.delta.perf === 0 && component.delta.rel === 0 && component.delta.cx === 0 && (
+          <span className="text-[var(--color-text-muted)]">无面板增量</span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-1">
+        {component.tags.map(tag => (
+          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-[var(--color-text-muted)]">
+            {tag}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function JokerStats({ joker }: { joker: Joker }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-[var(--color-text-muted)]">{joker.rarity}</span>
+      </div>
+      <p className="text-xs text-[var(--color-text-muted)]">{joker.desc}</p>
+      <div className="space-y-1 text-xs">
+        <div>
+          <span className="text-[var(--color-text-muted)]">{t('collection.effect')}: </span>
+          <span className="text-white">{formatJokerEffect(joker.effect)}</span>
+        </div>
+        {hasCondition(joker.condition) && (
+          <div>
+            <span className="text-[var(--color-text-muted)]">{t('collection.condition')}: </span>
+            <span className="text-white">{formatCondition(joker.condition)}</span>
+          </div>
+        )}
+        <div>
+          <span className="text-[var(--color-text-muted)]">{t('collection.cost')}: </span>
+          <span className="neon-gold">${joker.shop_cost}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TarotStats({ tarot }: { tarot: Tarot }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-[var(--color-text-muted)]">{tarot.desc}</p>
+      <div className="space-y-1 text-xs">
+        <div>
+          <span className="text-[var(--color-text-muted)]">{t('collection.effect')}: </span>
+          <span className="text-white">{formatTarotEffect(tarot.effect)}</span>
+        </div>
+        <div>
+          <span className="text-[var(--color-text-muted)]">{t('collection.cost')}: </span>
+          <span className="neon-gold">${tarot.shop_cost}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PackStats({ pack }: { pack: PackType }) {
+  return (
+    <div className="space-y-2">
+      <div className="space-y-1 text-xs">
+        <div>
+          <span className="text-[var(--color-text-muted)]">{t('collection.cost')}: </span>
+          <span className="neon-gold">${pack.price}</span>
+        </div>
+        <div>
+          <span className="text-[var(--color-text-muted)]">包含: </span>
+          <span className="text-white">{pack.cardCount} 张塔罗牌</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyDetail({ tab, counts }: { tab: Tab; counts: Record<string, number> }) {
+  const hints: Record<Tab, string> = {
+    components: `共 ${counts.components} 张组件卡，分布在 5 个 Domain。点击卡牌查看详情与典故。`,
+    jokers: `共 ${counts.jokers} 张 Joker，提供跨阶段持久增益。点击卡牌查看详情。`,
+    tarots: `共 ${counts.tarots} 张塔罗牌，一次性使用，永久修改目标组件。`,
+    packs: `共 ${counts.packs} 种卡包，每种以一本真实技术书命名。`,
+    patterns: '',
+  };
+
+  return (
+    <div className="h-full flex items-center justify-center p-8">
+      <p className="text-sm text-[var(--color-text-muted)] text-center leading-relaxed">
+        {hints[tab]}
+      </p>
+    </div>
+  );
+}
+
+/* ─── Helper functions for detail panel ─── */
+
+function getItemId(item: SelectedItem): string {
+  return item.data.id;
+}
+
+function getItemName(item: SelectedItem): string {
+  return item.data.name;
+}
+
+function getItemColor(item: SelectedItem): string {
+  if (item.type === 'component') return domainColors[item.data.domain] ?? '#888';
+  if (item.type === 'joker') return '#a855f7';
+  if (item.type === 'tarot') return '#6366f1';
+  return '#f59e0b';
+}
+
 /* ─── Components Tab ─── */
 
 function ComponentsTab({
-  components, domainFilter, setDomainFilter, onCardClick,
+  components, platforms, domainFilter, setDomainFilter, platformFilter, setPlatformFilter, selectedId, onSelect,
 }: {
   components: Component[];
+  platforms: Platform[];
   domainFilter: string | null;
   setDomainFilter: (d: string | null) => void;
-  onCardClick: (c: Component) => void;
+  platformFilter: string | null;
+  setPlatformFilter: (p: string | null) => void;
+  selectedId: string | null;
+  onSelect: (c: Component) => void;
 }) {
-  const filtered = domainFilter
-    ? components.filter(c => c.domain === domainFilter)
+  const afterPlatform = platformFilter
+    ? components.filter(c => c.platform === platformFilter)
     : components;
+  const filtered = domainFilter
+    ? afterPlatform.filter(c => c.domain === domainFilter)
+    : afterPlatform;
 
-  const counts = Object.fromEntries(
-    domains.map(d => [d, components.filter(c => c.domain === d).length])
+  const domainCounts = Object.fromEntries(
+    domains.map(d => [d, afterPlatform.filter(c => c.domain === d).length])
+  );
+
+  const platformKeys = ['generic', ...platforms.map(p => p.id)] as const;
+  const platformCounts = Object.fromEntries(
+    platformKeys.map(p => [p, components.filter(c => c.platform === p).length])
   );
 
   return (
     <div>
+      {/* Platform filter */}
+      <div className="flex gap-2 mb-3 flex-wrap">
+        <button
+          onClick={() => setPlatformFilter(null)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            !platformFilter ? 'bg-white/15 text-white' : 'text-[var(--color-text-muted)] hover:bg-white/5'
+          }`}
+        >
+          全部 ({components.length})
+        </button>
+        {platformKeys.map(p => (
+          <button
+            key={p}
+            onClick={() => setPlatformFilter(platformFilter === p ? null : p)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              platformFilter === p ? 'bg-white/15' : 'hover:bg-white/5'
+            }`}
+            style={{ color: platformColors[p] }}
+          >
+            {platformLabels[p]} ({platformCounts[p]})
+          </button>
+        ))}
+      </div>
+
       {/* Domain filter */}
       <div className="flex gap-2 mb-4 flex-wrap">
         <button
@@ -229,7 +557,7 @@ function ComponentsTab({
             !domainFilter ? 'bg-white/15 text-white' : 'text-[var(--color-text-muted)] hover:bg-white/5'
           }`}
         >
-          {t('common.total')} ({components.length})
+          {t('common.total')} ({afterPlatform.length})
         </button>
         {domains.map(d => (
           <button
@@ -240,20 +568,28 @@ function ComponentsTab({
             }`}
             style={{ color: domainColors[d] }}
           >
-            {t(`domain.${d}`)} ({counts[d]})
+            {t(`domain.${d}`)} ({domainCounts[d]})
           </button>
         ))}
       </div>
 
       <div className="text-[11px] text-[var(--color-text-muted)] mb-3">
-        点击卡牌添加到测试台
+        点击卡牌查看详情，在右侧面板添加到测试台
       </div>
 
       {/* Cards grid */}
       <div className="flex flex-wrap gap-3">
         {filtered.map(c => (
-          <div key={c.id} className="cursor-pointer" onClick={() => onCardClick(c)}>
-            <ComponentCard component={c} />
+          <div
+            key={c.id}
+            className={`rounded-xl transition ${selectedId === c.id ? 'ring-2' : ''}`}
+            style={selectedId === c.id ? { ringColor: domainColors[c.domain] } : undefined}
+          >
+            <ComponentCard
+              component={c}
+              selected={selectedId === c.id}
+              onClick={() => onSelect(c)}
+            />
           </div>
         ))}
       </div>
@@ -263,58 +599,58 @@ function ComponentsTab({
 
 /* ─── Jokers Tab ─── */
 
-function JokersTab({ jokers }: { jokers: Joker[] }) {
+function JokersTab({
+  jokers, selectedId, onSelect,
+}: {
+  jokers: Joker[];
+  selectedId: string | null;
+  onSelect: (j: Joker) => void;
+}) {
   return (
-    <div>
-      <div className="flex flex-wrap gap-3">
-        {jokers.map(j => (
-          <div key={j.id} className="relative group">
-            <JokerCard joker={j} />
-            <div className="absolute left-0 top-full mt-2 z-50 w-64 p-3 rounded-lg bg-[var(--color-surface)] border border-white/10 shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity">
-              <div className="text-sm font-medium mb-1">{j.name}</div>
-              <div className="text-xs text-[var(--color-text-muted)] mb-2">{j.desc}</div>
-              <div className="space-y-1 text-[11px]">
-                <div><span className="text-[var(--color-text-muted)]">{t('collection.effect')}:</span> <span className="text-white">{formatJokerEffect(j.effect)}</span></div>
-                {hasCondition(j.condition) && (
-                  <div><span className="text-[var(--color-text-muted)]">{t('collection.condition')}:</span> <span className="text-white">{formatCondition(j.condition)}</span></div>
-                )}
-                <div><span className="text-[var(--color-text-muted)]">{t('collection.cost')}:</span> <span className="neon-gold">${j.shop_cost}</span></div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-wrap gap-3">
+      {jokers.map(j => (
+        <div
+          key={j.id}
+          className={`rounded-xl transition ${selectedId === j.id ? 'ring-2 ring-purple-500' : ''}`}
+        >
+          <JokerCard joker={j} onClick={() => onSelect(j)} />
+        </div>
+      ))}
     </div>
   );
 }
 
 /* ─── Tarots Tab ─── */
 
-function TarotsTab({ tarots }: { tarots: Tarot[] }) {
+function TarotsTab({
+  tarots, selectedId, onSelect,
+}: {
+  tarots: Tarot[];
+  selectedId: string | null;
+  onSelect: (tt: Tarot) => void;
+}) {
   return (
-    <div>
-      <div className="flex flex-wrap gap-3">
-        {tarots.map(tt => (
-          <div key={tt.id} className="relative group">
-            <TarotCard tarot={tt} showPrice />
-            <div className="absolute left-0 top-full mt-2 z-50 w-64 p-3 rounded-lg bg-[var(--color-surface)] border border-white/10 shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity">
-              <div className="text-sm font-medium mb-1">{tt.name}</div>
-              <div className="text-xs text-[var(--color-text-muted)] mb-2">{tt.desc}</div>
-              <div className="space-y-1 text-[11px]">
-                <div><span className="text-[var(--color-text-muted)]">{t('collection.effect')}:</span> <span className="text-white">{formatTarotEffect(tt.effect)}</span></div>
-                <div><span className="text-[var(--color-text-muted)]">{t('collection.cost')}:</span> <span className="neon-gold">${tt.shop_cost}</span></div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-wrap gap-3">
+      {tarots.map(tt => (
+        <div
+          key={tt.id}
+          className={`rounded-xl transition ${selectedId === tt.id ? 'ring-2 ring-indigo-500' : ''}`}
+        >
+          <TarotCard tarot={tt} showPrice onClick={() => onSelect(tt)} />
+        </div>
+      ))}
     </div>
   );
 }
 
 /* ─── Packs Tab ─── */
 
-function PacksTab() {
+function PacksTab({
+  selectedId, onSelect,
+}: {
+  selectedId: string | null;
+  onSelect: (p: PackType) => void;
+}) {
   return (
     <div>
       <div className="text-[11px] text-[var(--color-text-muted)] mb-3">
@@ -322,21 +658,11 @@ function PacksTab() {
       </div>
       <div className="flex flex-wrap gap-4">
         {PACK_CATALOG.map(pack => (
-          <div key={pack.id} className="relative group">
-            <TarotPack pack={pack} showPrice />
-            <div className="absolute left-0 top-full mt-2 z-50 w-56 p-3 rounded-lg bg-[var(--color-surface)] border border-white/10 shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity">
-              <div className="text-sm font-medium mb-1">{pack.name}</div>
-              <div className="space-y-1 text-[11px]">
-                <div>
-                  <span className="text-[var(--color-text-muted)]">{t('collection.cost')}:</span>{' '}
-                  <span className="neon-gold">${pack.price}</span>
-                </div>
-                <div>
-                  <span className="text-[var(--color-text-muted)]">{t('collection.packCards')}:</span>{' '}
-                  <span className="text-white">{pack.cardCount} {t('collection.packCardsUnit')}</span>
-                </div>
-              </div>
-            </div>
+          <div
+            key={pack.id}
+            className={`rounded-lg transition ${selectedId === pack.id ? 'ring-2 ring-amber-500' : ''}`}
+          >
+            <TarotPack pack={pack} showPrice onClick={() => onSelect(pack)} />
           </div>
         ))}
       </div>

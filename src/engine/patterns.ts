@@ -11,6 +11,7 @@ import type { Component, Pattern } from '../schemas/index.js';
  *    - p_wide_spectrum: 4+ distinct domains
  * 3. Special:
  *    - p_full_stack: 3+ tier-2 patterns triggered simultaneously
+ *    - p_diy_full_stack: 5 domains each with at least 1 card
  */
 export function detectPatterns(deployed: Component[], patterns: Pattern[]): Pattern[] {
   // Collect all tags from deployed components
@@ -27,12 +28,19 @@ export function detectPatterns(deployed: Component[], patterns: Pattern[]): Patt
   // First pass: detect non-special patterns
   const triggered: Pattern[] = [];
   let fullStackPattern: Pattern | undefined;
+  let diyFullStackPattern: Pattern | undefined;
   let tier2Count = 0;
 
   for (const pattern of patterns) {
     // Special: p_full_stack is handled after counting tier-2 patterns
     if (pattern.id === 'p_full_stack') {
       fullStackPattern = pattern;
+      continue;
+    }
+
+    // Special: p_diy_full_stack requires 5 distinct domains
+    if (pattern.id === 'p_diy_full_stack') {
+      diyFullStackPattern = pattern;
       continue;
     }
 
@@ -72,8 +80,13 @@ export function detectPatterns(deployed: Component[], patterns: Pattern[]): Patt
 
     triggered.push(pattern);
 
-    // Count tier-2 patterns (tag-based, non-domain, non-legendary)
-    if (!pattern.id.startsWith('p_domain_') && pattern.id !== 'p_cqrs' && pattern.id !== 'p_zero_downtime') {
+    // Count tier-2 patterns (tag-based, non-domain, non-legendary, non-platform-exclusive)
+    if (
+      !pattern.id.startsWith('p_domain_') &&
+      pattern.id !== 'p_cqrs' &&
+      pattern.id !== 'p_zero_downtime' &&
+      !pattern.platform
+    ) {
       tier2Count++;
     }
   }
@@ -81,6 +94,11 @@ export function detectPatterns(deployed: Component[], patterns: Pattern[]): Patt
   // p_full_stack: triggers when 3+ tier-2 tag patterns triggered
   if (fullStackPattern && tier2Count >= 3) {
     triggered.push(fullStackPattern);
+  }
+
+  // p_diy_full_stack: triggers when 5 distinct domains present
+  if (diyFullStackPattern && distinctDomains >= 5) {
+    triggered.push(diyFullStackPattern);
   }
 
   return triggered;

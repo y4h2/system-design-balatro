@@ -32,6 +32,7 @@ describe('ComponentSchema', () => {
     delta: { perf: 3, rel: 1, cx: 2 },
     capacity_cost: 2,
     rarity: 'common',
+    platform: 'generic',
   };
 
   it('parses a valid component', () => {

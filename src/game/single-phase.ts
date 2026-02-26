@@ -43,7 +43,8 @@ export async function playSinglePhase(): Promise<void> {
   const scenario = await promptScenarioSelection(data.scenarios);
   renderScenarioOverview(scenario);
 
-  const state = createGameState(scenario, school);
+  const platform = data.platforms[0];
+  const state = createGameState(scenario, school, platform);
 
   const ownedIds = new Set(state.componentPool.map(c => c.id));
   const dealt = autoDeal(data.components, ownedIds, school.modifiers.draft_rounds);

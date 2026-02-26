@@ -1,4 +1,4 @@
-import type { Component, Phase, Pattern, SuperPattern, Joker, School, BossRule } from '../schemas/index.js';
+import type { Component, Phase, Pattern, SuperPattern, Joker, School, BossRule, Platform } from '../schemas/index.js';
 import { validateDeployment, getEffectiveCapacityCost } from './deploy.js';
 import { detectPatterns } from './patterns.js';
 import { computePanel, computeChips, computeMult, computeFinalScore, type Panel } from './scoring.js';
@@ -16,6 +16,11 @@ import {
   getJokerMultipliers,
   computeJokerGold,
 } from './joker-specials.js';
+import {
+  getPlatformChipBonus,
+  applyAwsMultiRegion,
+  applySelfhostedCxPenalty,
+} from './platform.js';
 
 // ── Input / Output types ────────────────────────────────────────────
 
@@ -28,6 +33,7 @@ export interface PhaseInput {
   patterns: Pattern[];
   superPatterns: SuperPattern[];
   bossRule?: BossRule;
+  platform?: Platform;
 }
 
 export interface SuperPatternRewardApplied {
@@ -113,7 +119,7 @@ function checkSuperPatterns(
 // ── Main runner ─────────────────────────────────────────────────────
 
 export function runPhase(input: PhaseInput): PhaseSettlement {
-  const { phase, deployed, school, baseline, jokers, patterns, superPatterns, bossRule } = input;
+  const { phase, deployed, school, baseline, jokers, patterns, superPatterns, bossRule, platform } = input;
 
   // 0. Parse boss rule effects (if any)
   const bossEffects = bossRule ? parseBossRuleEffects(bossRule) : undefined;
@@ -124,15 +130,15 @@ export function runPhase(input: PhaseInput): PhaseSettlement {
     capacityBudget = applyBossBudgetFactor(capacityBudget, bossEffects);
   }
 
-  // 2. Validate deployment (capacity check) with boss capacity cost modifier
+  // 2. Validate deployment (capacity check) with boss capacity cost modifier + platform
   let capacityUsed: number;
   if (bossEffects?.capacityMultiplierForTags) {
     capacityUsed = deployed.reduce((sum, c) => {
-      const baseCost = getEffectiveCapacityCost(c, school.modifiers);
+      const baseCost = getEffectiveCapacityCost(c, school.modifiers, platform);
       return sum + applyBossCapacityCost(baseCost, c, bossEffects);
     }, 0);
   } else {
-    const deployment = validateDeployment(deployed, capacityBudget, school.modifiers);
+    const deployment = validateDeployment(deployed, capacityBudget, school.modifiers, platform);
     capacityUsed = deployment.totalCost;
   }
 
@@ -200,18 +206,25 @@ export function runPhase(input: PhaseInput): PhaseSettlement {
     }
   }
 
-  // 7. Compute panel (for constraint checking)
-  const panel = computePanel(deployed, baseline);
+  // 7. Compute panel (for constraint checking) with platform mechanics
+  let panel = computePanel(deployed, baseline);
+  if (platform?.id === 'aws') {
+    panel = applyAwsMultiRegion(deployed, panel);
+  }
+  if (platform?.id === 'selfhosted') {
+    panel = applySelfhostedCxPenalty(deployed, panel);
+  }
 
-  // 8. Validate constraints → penalty
-  const constraintResult = validateConstraints(panel, deployed, phase.constraints);
+  // 8. Validate constraints → penalty (with platform mechanic: Azure Compliance Shield)
+  const constraintResult = validateConstraints(panel, deployed, phase.constraints, platform);
   const constraintPenalty = constraintResult.penalty;
 
-  // 9. Compute chips = Σ base_chips + pattern chips + joker chips + super pattern chips
+  // 9. Compute chips = Σ base_chips + pattern chips + joker chips + platform chips + super pattern chips
   const baseChips = deployed.reduce((sum, c) => sum + c.base_chips, 0);
   const patternChips = triggeredPatterns.reduce((sum, p) => sum + p.effects.chips_add, 0);
   const jokerChips = computeJokerChipBonus(activeJokers, deployed);
-  const chips = computeChips(deployed, patternChips + superPatternChips, jokerChips);
+  const platformChips = platform ? getPlatformChipBonus(deployed, platform) : 0;
+  const chips = computeChips(deployed, patternChips + superPatternChips, jokerChips + platformChips);
 
   // 10. Compute mult = (1 + pattern mults + joker mult adds + super pattern mult adds) × joker multipliers
   const jokerMultAddTotal = computeJokerMultAdd(activeJokers, triggeredPatterns.length) + superPatternMultAdd;

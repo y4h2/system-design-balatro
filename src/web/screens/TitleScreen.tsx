@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { t } from '../i18n';
+import type { PlatformId } from '../../schemas/index';
 
 const schoolTheme: Record<string, { accent: string; glow: string; icon: string }> = {
   school_sre:         { accent: '#3498db', glow: 'rgba(52,152,219,0.4)',  icon: '🛡️' },
@@ -16,8 +17,10 @@ export default function TitleScreen() {
   const { gameData, startGame, setScreen } = useGameStore();
   const [schoolIndex, setSchoolIndex] = useState(0);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<PlatformId | null>(null);
 
   const schools = gameData.schools;
+  const platforms = gameData.platforms;
   const currentSchool = schools[schoolIndex];
   const theme = schoolTheme[currentSchool.id] ?? { accent: '#6b7280', glow: 'rgba(107,114,128,0.4)', icon: '?' };
 
@@ -31,6 +34,8 @@ export default function TitleScreen() {
   };
 
   const m = currentSchool.modifiers;
+
+  const canStart = selectedScenario && selectedPlatform;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center py-8 px-4">
@@ -47,7 +52,7 @@ export default function TitleScreen() {
       </motion.div>
 
       {/* Carousel: arrow + card + info + arrow */}
-      <div className="flex items-center gap-4 sm:gap-6 mb-8 w-full max-w-2xl">
+      <div className="flex items-center gap-4 sm:gap-6 mb-6 w-full max-w-2xl">
         {/* Left arrow */}
         <button
           onClick={prevSchool}
@@ -176,6 +181,55 @@ export default function TitleScreen() {
         </button>
       </div>
 
+      {/* Platform selector */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.15 }}
+        className="w-full max-w-2xl mb-6"
+      >
+        <div className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider mb-3 text-center">
+          {t('title.platform')}
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {platforms.map((plat) => {
+            const isSelected = selectedPlatform === plat.id;
+            return (
+              <button
+                key={plat.id}
+                onClick={() => setSelectedPlatform(plat.id)}
+                className={`px-3 py-3 rounded-xl border-2 transition-all text-left ${
+                  isSelected
+                    ? 'shadow-lg'
+                    : 'border-white/10 bg-[var(--color-surface)] hover:border-white/25'
+                }`}
+                style={isSelected ? {
+                  borderColor: plat.accent,
+                  background: `linear-gradient(135deg, ${plat.accent}15 0%, var(--color-surface) 100%)`,
+                  boxShadow: `0 0 16px ${plat.glow}`,
+                } : undefined}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">{plat.icon}</span>
+                  <span className="font-display font-bold text-sm" style={isSelected ? { color: plat.accent } : undefined}>
+                    {plat.name}
+                  </span>
+                </div>
+                <div className="text-[10px] text-[var(--color-text-muted)] leading-tight mb-1.5">
+                  {plat.positioning}
+                </div>
+                <div className="text-[10px] leading-tight" style={{ color: isSelected ? plat.accent : 'var(--color-text-muted)' }}>
+                  {plat.passive.desc}
+                </div>
+                <div className="text-[10px] leading-tight mt-0.5" style={{ color: isSelected ? plat.accent : 'var(--color-text-muted)' }}>
+                  {plat.mechanic.name}: {plat.mechanic.desc.length > 40 ? plat.mechanic.desc.slice(0, 40) + '...' : plat.mechanic.desc}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </motion.div>
+
       {/* Scenario selector */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -213,15 +267,15 @@ export default function TitleScreen() {
         {t('collection.title')}
       </button>
       <button
-        onClick={() => selectedScenario && startGame(currentSchool.id, selectedScenario)}
-        disabled={!selectedScenario}
+        onClick={() => canStart && startGame(currentSchool.id, selectedScenario!, selectedPlatform!)}
+        disabled={!canStart}
         className="px-14 py-4 rounded-2xl font-bold text-lg transition-all disabled:cursor-not-allowed"
         style={{
-          background: selectedScenario
+          background: canStart
             ? `linear-gradient(135deg, ${theme.accent}, ${theme.accent}cc)`
             : 'rgba(255,255,255,0.08)',
-          color: selectedScenario ? '#000' : 'rgba(255,255,255,0.3)',
-          boxShadow: selectedScenario
+          color: canStart ? '#000' : 'rgba(255,255,255,0.3)',
+          boxShadow: canStart
             ? `0 0 24px ${theme.glow}, 0 4px 12px rgba(0,0,0,0.3)`
             : 'none',
         }}

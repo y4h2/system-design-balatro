@@ -50,6 +50,7 @@ const zh: Record<string, string> = {
   'title.initialPool': '初始卡池',
   'title.budget': '预算偏移',
   'title.repair': '修补次数',
+  'title.platform': '平台',
   'title.discountTags': '折扣标签',
 
   // ── Blind Select ──

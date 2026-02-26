@@ -16,6 +16,7 @@ function makeComponent(overrides: Partial<Component> = {}): Component {
     delta: { perf: 0, rel: 0, cx: 0 },
     capacity_cost: 1,
     rarity: 'common',
+    platform: 'generic',
     ...overrides,
   };
 }

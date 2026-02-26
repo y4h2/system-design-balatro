@@ -148,7 +148,8 @@ export async function playFullGame(): Promise<void> {
   renderScenarioOverview(scenario);
 
   // 3. Create game state
-  const state = createGameState(scenario, school);
+  const platform = data.platforms[0];
+  const state = createGameState(scenario, school, platform);
   applySchoolFreeComponents(state, data.components);
   applyVibeCodingStartBonuses(state, data.jokers, data.tarots);
 
@@ -283,6 +284,7 @@ export async function playFullGame(): Promise<void> {
         data.components, data.jokers, data.tarots,
         state.componentPool.map(c => c.id),
         state.jokerSlots.map(j => j.id),
+        0,
       );
       await runShopPhase(state, inventory, data);
     }

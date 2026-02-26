@@ -16,6 +16,7 @@ function mockComponent(overrides: Partial<Component> = {}): Component {
     delta: { perf: 1, rel: 1, cx: 0 },
     capacity_cost: 10,
     rarity: 'common',
+    platform: 'generic',
     ...overrides,
   };
 }

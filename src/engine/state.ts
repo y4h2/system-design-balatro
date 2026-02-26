@@ -1,4 +1,4 @@
-import type { Scenario, School, Joker, Tarot, Component } from '../schemas/index.js';
+import type { Scenario, School, Joker, Tarot, Component, Platform } from '../schemas/index.js';
 
 export interface DeployedState {
   components: Component[];
@@ -16,6 +16,7 @@ export interface PhaseResult {
 export interface GameState {
   scenario: Scenario;
   school: School;
+  platform: Platform;
   componentPool: Component[];
   jokerSlots: Joker[];
   jokerSlotMax: number;
@@ -27,10 +28,11 @@ export interface GameState {
   deployed: DeployedState;
 }
 
-export function createGameState(scenario: Scenario, school: School): GameState {
+export function createGameState(scenario: Scenario, school: School, platform: Platform): GameState {
   return {
     scenario,
     school,
+    platform,
     componentPool: [],
     jokerSlots: [],
     jokerSlotMax: school.modifiers.joker_slots,

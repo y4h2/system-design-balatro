@@ -10,6 +10,7 @@ import {
   SchoolSchema,
   BossRuleSchema,
   TarotSchema,
+  PlatformSchema,
 } from '../schemas/index.js';
 
 function loadJson<T>(filename: string, schema: z.ZodType<T>): T[] {
@@ -28,6 +29,7 @@ export function loadGameData() {
     schools: loadJson('schools.json', SchoolSchema),
     bossRules: loadJson('boss_rules.json', BossRuleSchema),
     tarots: loadJson('tarots.json', TarotSchema),
+    platforms: loadJson('platforms.json', PlatformSchema),
   };
 }
 

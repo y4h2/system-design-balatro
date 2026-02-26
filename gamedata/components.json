@@ -4,659 +4,1686 @@
     "name": "EC2 实例",
     "desc": "通用计算实例",
     "domain": "compute",
-    "tags": ["compute"],
+    "tags": [
+      "compute"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 0, "cx": 0 },
+    "delta": {
+      "perf": 1,
+      "rel": 0,
+      "cx": 0
+    },
     "capacity_cost": 8,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "aws"
   },
   {
     "id": "cmp_lambda",
     "name": "Lambda 函数",
     "desc": "事件驱动无服务器计算",
     "domain": "compute",
-    "tags": ["compute", "async"],
+    "tags": [
+      "compute",
+      "async"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 0, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 0,
+      "cx": 0
+    },
     "capacity_cost": 5,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "aws"
   },
   {
     "id": "cmp_k8s_pod",
     "name": "K8s Pod",
     "desc": "容器化工作负载",
     "domain": "compute",
-    "tags": ["compute", "deploy"],
+    "tags": [
+      "compute",
+      "deploy"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 1, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 12,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_worker",
     "name": "Worker Fleet",
     "desc": "消费队列，异步处理",
     "domain": "compute",
-    "tags": ["compute", "async"],
+    "tags": [
+      "compute",
+      "async"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 0, "cx": 0 },
+    "delta": {
+      "perf": 1,
+      "rel": 0,
+      "cx": 0
+    },
     "capacity_cost": 8,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_cron",
     "name": "Cron Job",
     "desc": "定时任务调度",
     "domain": "compute",
-    "tags": ["compute", "async"],
+    "tags": [
+      "compute",
+      "async"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 0, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 0,
+      "cx": 0
+    },
     "capacity_cost": 4,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_auto_scaler",
     "name": "Auto Scaler",
     "desc": "动态扩缩容",
     "domain": "compute",
-    "tags": ["compute", "ha"],
+    "tags": [
+      "compute",
+      "ha"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 10,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_ecs",
     "name": "ECS 容器服务",
     "desc": "托管容器编排",
     "domain": "compute",
-    "tags": ["compute", "deploy"],
+    "tags": [
+      "compute",
+      "deploy"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 1, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 10,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "aws"
   },
   {
     "id": "cmp_batch",
     "name": "Batch 计算",
     "desc": "大规模批处理",
     "domain": "compute",
-    "tags": ["compute", "async"],
+    "tags": [
+      "compute",
+      "async"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 0, "cx": 1 },
+    "delta": {
+      "perf": 1,
+      "rel": 0,
+      "cx": 1
+    },
     "capacity_cost": 9,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_edge_function",
     "name": "Edge Function",
     "desc": "边缘计算",
     "domain": "compute",
-    "tags": ["compute", "edge"],
+    "tags": [
+      "compute",
+      "edge"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 2, "rel": 0, "cx": 0 },
+    "delta": {
+      "perf": 2,
+      "rel": 0,
+      "cx": 0
+    },
     "capacity_cost": 7,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_gpu",
     "name": "GPU 实例",
     "desc": "GPU 加速计算",
     "domain": "compute",
-    "tags": ["compute"],
+    "tags": [
+      "compute"
+    ],
     "base_chips": 5,
-    "delta": { "perf": 3, "rel": 0, "cx": 1 },
+    "delta": {
+      "perf": 3,
+      "rel": 0,
+      "cx": 1
+    },
     "capacity_cost": 15,
-    "rarity": "rare"
+    "rarity": "rare",
+    "platform": "generic"
   },
   {
     "id": "cmp_step_functions",
     "name": "Step Functions",
     "desc": "编排工作流",
     "domain": "compute",
-    "tags": ["compute", "async"],
+    "tags": [
+      "compute",
+      "async"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 0, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 8,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "aws"
   },
   {
     "id": "cmp_microservice",
     "name": "微服务",
     "desc": "独立部署的服务单元",
     "domain": "compute",
-    "tags": ["compute", "deploy"],
+    "tags": [
+      "compute",
+      "deploy"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 0, "cx": 1 },
+    "delta": {
+      "perf": 1,
+      "rel": 0,
+      "cx": 1
+    },
     "capacity_cost": 7,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_postgresql",
     "name": "PostgreSQL",
     "desc": "强一致事务，写路径核心",
     "domain": "data",
-    "tags": ["db"],
+    "tags": [
+      "db"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 1, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 14,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_mysql",
     "name": "MySQL",
     "desc": "成熟关系型数据库",
     "domain": "data",
-    "tags": ["db"],
+    "tags": [
+      "db"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 12,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_mongodb",
     "name": "MongoDB",
     "desc": "文档型数据库，灵活 schema",
     "domain": "data",
-    "tags": ["db"],
+    "tags": [
+      "db"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 2, "rel": 0, "cx": 0 },
+    "delta": {
+      "perf": 2,
+      "rel": 0,
+      "cx": 0
+    },
     "capacity_cost": 12,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_dynamodb",
     "name": "DynamoDB",
     "desc": "无限扩展的 KV 存储",
     "domain": "data",
-    "tags": ["db"],
+    "tags": [
+      "db"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 2, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 2,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 14,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "aws"
   },
   {
     "id": "cmp_aurora",
     "name": "Aurora",
     "desc": "云原生关系型数据库",
     "domain": "data",
-    "tags": ["db", "ha"],
+    "tags": [
+      "db",
+      "ha"
+    ],
     "base_chips": 5,
-    "delta": { "perf": 2, "rel": 2, "cx": 1 },
+    "delta": {
+      "perf": 2,
+      "rel": 2,
+      "cx": 1
+    },
     "capacity_cost": 18,
-    "rarity": "rare"
+    "rarity": "rare",
+    "platform": "aws"
   },
   {
     "id": "cmp_redis",
     "name": "Redis",
     "desc": "缓存与数据结构",
     "domain": "data",
-    "tags": ["cache", "db"],
+    "tags": [
+      "cache",
+      "db"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 3, "rel": 0, "cx": 0 },
+    "delta": {
+      "perf": 3,
+      "rel": 0,
+      "cx": 0
+    },
     "capacity_cost": 10,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_memcached",
     "name": "Memcached",
     "desc": "纯缓存，简单高效",
     "domain": "data",
-    "tags": ["cache"],
+    "tags": [
+      "cache"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 2, "rel": 0, "cx": 0 },
+    "delta": {
+      "perf": 2,
+      "rel": 0,
+      "cx": 0
+    },
     "capacity_cost": 6,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_s3",
     "name": "S3 对象存储",
     "desc": "海量 Blob 存储",
     "domain": "data",
-    "tags": ["storage"],
+    "tags": [
+      "storage"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 5,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "aws"
   },
   {
     "id": "cmp_elasticsearch",
     "name": "Elasticsearch",
     "desc": "全文检索与聚合分析",
     "domain": "data",
-    "tags": ["search", "db"],
+    "tags": [
+      "search",
+      "db"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 2, "rel": 0, "cx": 1 },
+    "delta": {
+      "perf": 2,
+      "rel": 0,
+      "cx": 1
+    },
     "capacity_cost": 14,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_timescaledb",
     "name": "TimescaleDB",
     "desc": "时序数据库",
     "domain": "data",
-    "tags": ["db", "monitor"],
+    "tags": [
+      "db",
+      "monitor"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 12,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_kafka",
     "name": "Kafka",
     "desc": "高吞吐分布式消息流",
     "domain": "data",
-    "tags": ["queue", "async", "realtime"],
+    "tags": [
+      "queue",
+      "async",
+      "realtime"
+    ],
     "base_chips": 5,
-    "delta": { "perf": 2, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 2,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 16,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_rabbitmq",
     "name": "RabbitMQ",
     "desc": "传统消息队列",
     "domain": "data",
-    "tags": ["queue", "async"],
+    "tags": [
+      "queue",
+      "async"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 10,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_sqs",
     "name": "SQS",
     "desc": "托管消息队列",
     "domain": "data",
-    "tags": ["queue", "async"],
+    "tags": [
+      "queue",
+      "async"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 1, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 6,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "aws"
   },
   {
     "id": "cmp_data_warehouse",
     "name": "Data Warehouse",
     "desc": "数据仓库OLAP",
     "domain": "data",
-    "tags": ["db", "storage"],
+    "tags": [
+      "db",
+      "storage"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 1, "rel": 1, "cx": 2 },
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 2
+    },
     "capacity_cost": 16,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_graph_db",
     "name": "Graph DB",
     "desc": "图数据库",
     "domain": "data",
-    "tags": ["db", "search"],
+    "tags": [
+      "db",
+      "search"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 1, "rel": 0, "cx": 1 },
+    "delta": {
+      "perf": 1,
+      "rel": 0,
+      "cx": 1
+    },
     "capacity_cost": 14,
-    "rarity": "rare"
+    "rarity": "rare",
+    "platform": "generic"
   },
   {
     "id": "cmp_nginx",
     "name": "Nginx",
     "desc": "高性能反向代理",
     "domain": "network",
-    "tags": ["gateway"],
+    "tags": [
+      "gateway"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 0, "cx": 0 },
+    "delta": {
+      "perf": 1,
+      "rel": 0,
+      "cx": 0
+    },
     "capacity_cost": 6,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_kong",
     "name": "Kong API Gateway",
     "desc": "API 网关：鉴权/路由/限速",
     "domain": "network",
-    "tags": ["gateway", "security"],
+    "tags": [
+      "gateway",
+      "security"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 0, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 10,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_alb",
     "name": "ALB 负载均衡",
     "desc": "应用层负载均衡",
     "domain": "network",
-    "tags": ["gateway", "ha"],
+    "tags": [
+      "gateway",
+      "ha"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 8,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "aws"
   },
   {
     "id": "cmp_cloudfront",
     "name": "CloudFront CDN",
     "desc": "边缘缓存与加速",
     "domain": "network",
-    "tags": ["edge", "cache"],
+    "tags": [
+      "edge",
+      "cache"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 2, "rel": 0, "cx": 0 },
+    "delta": {
+      "perf": 2,
+      "rel": 0,
+      "cx": 0
+    },
     "capacity_cost": 10,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "aws"
   },
   {
     "id": "cmp_geodns",
     "name": "GeoDNS",
     "desc": "基于地理的 DNS 路由",
     "domain": "network",
-    "tags": ["edge", "gateway"],
+    "tags": [
+      "edge",
+      "gateway"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 8,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_rate_limiter",
     "name": "Rate Limiter",
     "desc": "限流保护下游",
     "domain": "network",
-    "tags": ["gateway", "security"],
+    "tags": [
+      "gateway",
+      "security"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 5,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_waf",
     "name": "WAF",
     "desc": "Web 应用防火墙",
     "domain": "network",
-    "tags": ["security", "gateway"],
+    "tags": [
+      "security",
+      "gateway"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 6,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_websocket",
     "name": "WebSocket Gateway",
     "desc": "长连接网关",
     "domain": "network",
-    "tags": ["gateway", "realtime"],
+    "tags": [
+      "gateway",
+      "realtime"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 1, "rel": 0, "cx": 1 },
+    "delta": {
+      "perf": 1,
+      "rel": 0,
+      "cx": 1
+    },
     "capacity_cost": 10,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_istio",
     "name": "Istio Service Mesh",
     "desc": "服务间通信治理",
     "domain": "network",
-    "tags": ["gateway", "security", "monitor"],
+    "tags": [
+      "gateway",
+      "security",
+      "monitor"
+    ],
     "base_chips": 5,
-    "delta": { "perf": 0, "rel": 2, "cx": 2 },
+    "delta": {
+      "perf": 0,
+      "rel": 2,
+      "cx": 2
+    },
     "capacity_cost": 16,
-    "rarity": "rare"
+    "rarity": "rare",
+    "platform": "generic"
   },
   {
     "id": "cmp_global_accelerator",
     "name": "Global Accelerator",
     "desc": "全球加速",
     "domain": "network",
-    "tags": ["edge", "ha"],
+    "tags": [
+      "edge",
+      "ha"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 2, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 2,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 12,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_multi_az",
     "name": "Multi-AZ Deploy",
     "desc": "多可用区部署",
     "domain": "defense",
-    "tags": ["ha"],
+    "tags": [
+      "ha"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 0, "rel": 3, "cx": 1 },
+    "delta": {
+      "perf": 0,
+      "rel": 3,
+      "cx": 1
+    },
     "capacity_cost": 16,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_circuit_breaker",
     "name": "Circuit Breaker",
     "desc": "熔断与快速失败",
     "domain": "defense",
-    "tags": ["ha"],
+    "tags": [
+      "ha"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 0, "rel": 2, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 2,
+      "cx": 0
+    },
     "capacity_cost": 7,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_health_check",
     "name": "Health Check",
     "desc": "探活与自动摘除",
     "domain": "defense",
-    "tags": ["ha", "monitor"],
+    "tags": [
+      "ha",
+      "monitor"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 4,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_failover",
     "name": "Active-Standby Failover",
     "desc": "主备切换",
     "domain": "defense",
-    "tags": ["ha", "replication"],
+    "tags": [
+      "ha",
+      "replication"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 0, "rel": 3, "cx": 1 },
+    "delta": {
+      "perf": 0,
+      "rel": 3,
+      "cx": 1
+    },
     "capacity_cost": 14,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_backup",
     "name": "Backup & Restore",
     "desc": "定期备份与恢复",
     "domain": "defense",
-    "tags": ["ha", "storage"],
+    "tags": [
+      "ha",
+      "storage"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 2, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 2,
+      "cx": 0
+    },
     "capacity_cost": 6,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_dlq",
     "name": "Dead Letter Queue",
     "desc": "死信队列",
     "domain": "defense",
-    "tags": ["async", "ha"],
+    "tags": [
+      "async",
+      "ha"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 5,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_idempotency",
     "name": "Idempotency Key",
     "desc": "幂等防重",
     "domain": "defense",
-    "tags": ["security"],
+    "tags": [
+      "security"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 5,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_consistency_checker",
     "name": "Consistency Checker",
     "desc": "数据一致性校验",
     "domain": "defense",
-    "tags": ["monitor", "db"],
+    "tags": [
+      "monitor",
+      "db"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 0, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 8,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_dr",
     "name": "Disaster Recovery",
     "desc": "跨地域容灾",
     "domain": "defense",
-    "tags": ["ha", "replication"],
+    "tags": [
+      "ha",
+      "replication"
+    ],
     "base_chips": 5,
-    "delta": { "perf": 0, "rel": 3, "cx": 2 },
+    "delta": {
+      "perf": 0,
+      "rel": 3,
+      "cx": 2
+    },
     "capacity_cost": 20,
-    "rarity": "rare"
+    "rarity": "rare",
+    "platform": "generic"
   },
   {
     "id": "cmp_blue_green",
     "name": "Blue-Green Deploy",
     "desc": "蓝绿部署",
     "domain": "defense",
-    "tags": ["deploy", "ha"],
+    "tags": [
+      "deploy",
+      "ha"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 0, "rel": 2, "cx": 1 },
+    "delta": {
+      "perf": 0,
+      "rel": 2,
+      "cx": 1
+    },
     "capacity_cost": 10,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_chaos_monkey",
     "name": "Chaos Monkey",
     "desc": "混沌工程",
     "domain": "defense",
-    "tags": ["ha", "monitor"],
+    "tags": [
+      "ha",
+      "monitor"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 0, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 8,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_canary",
     "name": "Canary Deploy",
     "desc": "金丝雀发布",
     "domain": "defense",
-    "tags": ["deploy", "monitor"],
+    "tags": [
+      "deploy",
+      "monitor"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 7,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_prometheus",
     "name": "Prometheus",
     "desc": "指标采集与告警",
     "domain": "platform",
-    "tags": ["monitor"],
+    "tags": [
+      "monitor"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 7,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_datadog",
     "name": "Datadog",
     "desc": "全栈可观测平台",
     "domain": "platform",
-    "tags": ["monitor"],
+    "tags": [
+      "monitor"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 12,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_grafana",
     "name": "Grafana",
     "desc": "可视化监控面板",
     "domain": "platform",
-    "tags": ["monitor"],
+    "tags": [
+      "monitor"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 0, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 0,
+      "cx": 0
+    },
     "capacity_cost": 5,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_elk",
     "name": "ELK Stack",
     "desc": "日志聚合分析",
     "domain": "platform",
-    "tags": ["monitor", "search"],
+    "tags": [
+      "monitor",
+      "search"
+    ],
     "base_chips": 4,
-    "delta": { "perf": 0, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 12,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_feature_flag",
     "name": "Feature Flag",
     "desc": "功能开关",
     "domain": "platform",
-    "tags": ["deploy"],
+    "tags": [
+      "deploy"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 4,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_config_center",
     "name": "Config Center",
     "desc": "集中配置管理",
     "domain": "platform",
-    "tags": ["deploy"],
+    "tags": [
+      "deploy"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 5,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_vault",
     "name": "Vault",
     "desc": "密钥与证书管理",
     "domain": "platform",
-    "tags": ["security"],
+    "tags": [
+      "security"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 8,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_audit_log",
     "name": "Audit Log",
     "desc": "审计日志",
     "domain": "platform",
-    "tags": ["security", "monitor"],
+    "tags": [
+      "security",
+      "monitor"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 6,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_encryption",
     "name": "Encryption",
     "desc": "传输/存储加密",
     "domain": "platform",
-    "tags": ["security"],
+    "tags": [
+      "security"
+    ],
     "base_chips": 2,
-    "delta": { "perf": 0, "rel": 1, "cx": 0 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
     "capacity_cost": 5,
-    "rarity": "common"
+    "rarity": "common",
+    "platform": "generic"
   },
   {
     "id": "cmp_argocd",
     "name": "ArgoCD",
     "desc": "GitOps 持续部署",
     "domain": "platform",
-    "tags": ["deploy"],
+    "tags": [
+      "deploy"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 0, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 9,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
   },
   {
     "id": "cmp_terraform",
     "name": "Terraform",
     "desc": "基础设施即代码",
     "domain": "platform",
-    "tags": ["deploy"],
+    "tags": [
+      "deploy"
+    ],
     "base_chips": 3,
-    "delta": { "perf": 0, "rel": 1, "cx": 1 },
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 1
+    },
     "capacity_cost": 9,
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "platform": "generic"
+  },
+  {
+    "id": "cmp_cloud_run",
+    "name": "Cloud Run",
+    "desc": "全托管无服务器容器",
+    "domain": "compute",
+    "tags": [
+      "compute",
+      "deploy"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 7,
+    "rarity": "common",
+    "platform": "gcp"
+  },
+  {
+    "id": "cmp_gke",
+    "name": "GKE",
+    "desc": "Google 托管 Kubernetes",
+    "domain": "compute",
+    "tags": [
+      "compute",
+      "deploy"
+    ],
+    "base_chips": 4,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 1
+    },
+    "capacity_cost": 12,
+    "rarity": "uncommon",
+    "platform": "gcp"
+  },
+  {
+    "id": "cmp_bigquery",
+    "name": "BigQuery",
+    "desc": "PB级无服务器数据分析",
+    "domain": "data",
+    "tags": [
+      "db",
+      "search"
+    ],
+    "base_chips": 5,
+    "delta": {
+      "perf": 3,
+      "rel": 1,
+      "cx": 1
+    },
+    "capacity_cost": 16,
+    "rarity": "rare",
+    "platform": "gcp"
+  },
+  {
+    "id": "cmp_cloud_spanner",
+    "name": "Cloud Spanner",
+    "desc": "全球分布式强一致数据库",
+    "domain": "data",
+    "tags": [
+      "db",
+      "ha",
+      "replication"
+    ],
+    "base_chips": 5,
+    "delta": {
+      "perf": 2,
+      "rel": 3,
+      "cx": 2
+    },
+    "capacity_cost": 20,
+    "rarity": "rare",
+    "platform": "gcp"
+  },
+  {
+    "id": "cmp_pubsub",
+    "name": "Pub/Sub",
+    "desc": "全球消息流服务",
+    "domain": "data",
+    "tags": [
+      "queue",
+      "async"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 8,
+    "rarity": "common",
+    "platform": "gcp"
+  },
+  {
+    "id": "cmp_cloud_functions",
+    "name": "Cloud Functions",
+    "desc": "事件驱动函数计算",
+    "domain": "compute",
+    "tags": [
+      "compute",
+      "async"
+    ],
+    "base_chips": 2,
+    "delta": {
+      "perf": 1,
+      "rel": 0,
+      "cx": 0
+    },
+    "capacity_cost": 5,
+    "rarity": "common",
+    "platform": "gcp"
+  },
+  {
+    "id": "cmp_firestore",
+    "name": "Firestore",
+    "desc": "实时文档数据库",
+    "domain": "data",
+    "tags": [
+      "db",
+      "realtime"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 10,
+    "rarity": "common",
+    "platform": "gcp"
+  },
+  {
+    "id": "cmp_cloud_cdn",
+    "name": "Cloud CDN",
+    "desc": "全球内容分发",
+    "domain": "network",
+    "tags": [
+      "edge",
+      "cache"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 2,
+      "rel": 0,
+      "cx": 0
+    },
+    "capacity_cost": 8,
+    "rarity": "common",
+    "platform": "gcp"
+  },
+  {
+    "id": "cmp_cloud_armor",
+    "name": "Cloud Armor",
+    "desc": "DDoS防护与安全策略",
+    "domain": "network",
+    "tags": [
+      "security",
+      "gateway"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 7,
+    "rarity": "uncommon",
+    "platform": "gcp"
+  },
+  {
+    "id": "cmp_cloud_monitoring",
+    "name": "Cloud Monitoring",
+    "desc": "GCP原生监控告警",
+    "domain": "platform",
+    "tags": [
+      "monitor"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 6,
+    "rarity": "common",
+    "platform": "gcp"
+  },
+  {
+    "id": "cmp_azure_functions",
+    "name": "Azure Functions",
+    "desc": "Azure 无服务器函数",
+    "domain": "compute",
+    "tags": [
+      "compute",
+      "async"
+    ],
+    "base_chips": 2,
+    "delta": {
+      "perf": 1,
+      "rel": 0,
+      "cx": 0
+    },
+    "capacity_cost": 5,
+    "rarity": "common",
+    "platform": "azure"
+  },
+  {
+    "id": "cmp_aks",
+    "name": "AKS",
+    "desc": "Azure 托管 Kubernetes",
+    "domain": "compute",
+    "tags": [
+      "compute",
+      "deploy"
+    ],
+    "base_chips": 4,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 1
+    },
+    "capacity_cost": 11,
+    "rarity": "uncommon",
+    "platform": "azure"
+  },
+  {
+    "id": "cmp_cosmos_db",
+    "name": "Cosmos DB",
+    "desc": "多模型全球分布式数据库",
+    "domain": "data",
+    "tags": [
+      "db",
+      "replication",
+      "ha"
+    ],
+    "base_chips": 5,
+    "delta": {
+      "perf": 2,
+      "rel": 3,
+      "cx": 1
+    },
+    "capacity_cost": 18,
+    "rarity": "rare",
+    "platform": "azure"
+  },
+  {
+    "id": "cmp_service_bus",
+    "name": "Service Bus",
+    "desc": "企业级消息代理",
+    "domain": "data",
+    "tags": [
+      "queue",
+      "async"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 8,
+    "rarity": "common",
+    "platform": "azure"
+  },
+  {
+    "id": "cmp_azure_front_door",
+    "name": "Azure Front Door",
+    "desc": "全球负载均衡与加速",
+    "domain": "network",
+    "tags": [
+      "edge",
+      "gateway",
+      "ha"
+    ],
+    "base_chips": 4,
+    "delta": {
+      "perf": 2,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 12,
+    "rarity": "uncommon",
+    "platform": "azure"
+  },
+  {
+    "id": "cmp_app_service",
+    "name": "App Service",
+    "desc": "全托管 Web 应用",
+    "domain": "compute",
+    "tags": [
+      "compute",
+      "deploy"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 8,
+    "rarity": "common",
+    "platform": "azure"
+  },
+  {
+    "id": "cmp_azure_sql",
+    "name": "Azure SQL",
+    "desc": "托管 SQL Server",
+    "domain": "data",
+    "tags": [
+      "db"
+    ],
+    "base_chips": 4,
+    "delta": {
+      "perf": 1,
+      "rel": 2,
+      "cx": 0
+    },
+    "capacity_cost": 14,
+    "rarity": "uncommon",
+    "platform": "azure"
+  },
+  {
+    "id": "cmp_blob_storage",
+    "name": "Blob Storage",
+    "desc": "Azure 对象存储",
+    "domain": "data",
+    "tags": [
+      "storage"
+    ],
+    "base_chips": 2,
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 5,
+    "rarity": "common",
+    "platform": "azure"
+  },
+  {
+    "id": "cmp_app_gateway",
+    "name": "Application Gateway",
+    "desc": "应用层网关",
+    "domain": "network",
+    "tags": [
+      "gateway",
+      "security"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 8,
+    "rarity": "common",
+    "platform": "azure"
+  },
+  {
+    "id": "cmp_azure_monitor",
+    "name": "Azure Monitor",
+    "desc": "Azure 原生监控平台",
+    "domain": "platform",
+    "tags": [
+      "monitor"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 7,
+    "rarity": "common",
+    "platform": "azure"
+  },
+  {
+    "id": "cmp_bare_metal",
+    "name": "Bare Metal Server",
+    "desc": "物理服务器，极致性能",
+    "domain": "compute",
+    "tags": [
+      "compute"
+    ],
+    "base_chips": 4,
+    "delta": {
+      "perf": 2,
+      "rel": 0,
+      "cx": 0
+    },
+    "capacity_cost": 10,
+    "rarity": "common",
+    "platform": "selfhosted"
+  },
+  {
+    "id": "cmp_nomad",
+    "name": "Nomad",
+    "desc": "HashiCorp 工作负载编排",
+    "domain": "compute",
+    "tags": [
+      "compute",
+      "deploy"
+    ],
+    "base_chips": 4,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 10,
+    "rarity": "uncommon",
+    "platform": "selfhosted"
+  },
+  {
+    "id": "cmp_cockroachdb",
+    "name": "CockroachDB",
+    "desc": "开源分布式 SQL 数据库",
+    "domain": "data",
+    "tags": [
+      "db",
+      "ha",
+      "replication"
+    ],
+    "base_chips": 5,
+    "delta": {
+      "perf": 2,
+      "rel": 2,
+      "cx": 2
+    },
+    "capacity_cost": 18,
+    "rarity": "rare",
+    "platform": "selfhosted"
+  },
+  {
+    "id": "cmp_nats",
+    "name": "NATS",
+    "desc": "轻量高性能消息系统",
+    "domain": "data",
+    "tags": [
+      "queue",
+      "async"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 2,
+      "rel": 0,
+      "cx": 0
+    },
+    "capacity_cost": 7,
+    "rarity": "common",
+    "platform": "selfhosted"
+  },
+  {
+    "id": "cmp_haproxy",
+    "name": "HAProxy",
+    "desc": "高可用负载均衡代理",
+    "domain": "network",
+    "tags": [
+      "gateway",
+      "ha"
+    ],
+    "base_chips": 4,
+    "delta": {
+      "perf": 1,
+      "rel": 2,
+      "cx": 0
+    },
+    "capacity_cost": 8,
+    "rarity": "common",
+    "platform": "selfhosted"
+  },
+  {
+    "id": "cmp_docker_swarm",
+    "name": "Docker Swarm",
+    "desc": "简易容器编排",
+    "domain": "compute",
+    "tags": [
+      "compute",
+      "deploy"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 1
+    },
+    "capacity_cost": 9,
+    "rarity": "common",
+    "platform": "selfhosted"
+  },
+  {
+    "id": "cmp_minio",
+    "name": "MinIO",
+    "desc": "自建 S3 兼容对象存储",
+    "domain": "data",
+    "tags": [
+      "storage"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 7,
+    "rarity": "common",
+    "platform": "selfhosted"
+  },
+  {
+    "id": "cmp_traefik",
+    "name": "Traefik",
+    "desc": "云原生边缘路由",
+    "domain": "network",
+    "tags": [
+      "gateway",
+      "deploy"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 1,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 7,
+    "rarity": "common",
+    "platform": "selfhosted"
+  },
+  {
+    "id": "cmp_wireguard",
+    "name": "WireGuard",
+    "desc": "现代 VPN 隧道",
+    "domain": "network",
+    "tags": [
+      "security"
+    ],
+    "base_chips": 2,
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 0
+    },
+    "capacity_cost": 5,
+    "rarity": "common",
+    "platform": "selfhosted"
+  },
+  {
+    "id": "cmp_ansible",
+    "name": "Ansible",
+    "desc": "自动化运维与配置管理",
+    "domain": "platform",
+    "tags": [
+      "deploy"
+    ],
+    "base_chips": 3,
+    "delta": {
+      "perf": 0,
+      "rel": 1,
+      "cx": 1
+    },
+    "capacity_cost": 8,
+    "rarity": "uncommon",
+    "platform": "selfhosted"
   }
 ]

@@ -24,7 +24,8 @@ import { computePanel, computeChips, computeMult, computeFinalScore, type Panel 
 import { computeJokerChipBonus, computeJokerMultAdd, getJokerMultipliers, computeJokerGold } from '../../engine/joker-specials.js';
 import { validateConstraints } from '../../engine/constraints.js';
 import { applyTarot } from '../../engine/tarot.js';
-import type { Component, Joker, Tarot, School, Phase } from '../../schemas/index.js';
+import { filterComponentsByPlatform, filterPatternsByPlatform, getPlatformChipBonus, applyAwsMultiRegion, applySelfhostedCxPenalty } from '../../engine/platform.js';
+import type { Component, Joker, Tarot, School, Phase, PlatformId } from '../../schemas/index.js';
 import { BASE_DEPLOY_SLOTS, type Screen } from './types.js';
 
 function getBaseline(school: School): Panel {
@@ -65,7 +66,7 @@ interface GameStore {
 
   // ── Actions ──
   setScreen(screen: Screen): void;
-  startGame(schoolId: string, scenarioId: string): void;
+  startGame(schoolId: string, scenarioId: string, platformId: PlatformId): void;
 
   skipBlind(): void;
   startPlay(): void;
@@ -113,17 +114,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ currentScreen: screen });
   },
 
-  startGame(schoolId, scenarioId) {
+  startGame(schoolId, scenarioId, platformId) {
     const { gameData } = get();
     const school = gameData.schools.find(s => s.id === schoolId)!;
     const scenario = gameData.scenarios.find(s => s.id === scenarioId)!;
-    const state = createGameState(scenario, school);
-    applySchoolFreeComponents(state, gameData.components);
+    const platform = gameData.platforms.find(p => p.id === platformId)!;
+    const state = createGameState(scenario, school, platform);
+
+    // Filter components by platform (generic + platform-exclusive only)
+    const platformComponents = filterComponentsByPlatform(gameData.components, platformId);
+    applySchoolFreeComponents(state, platformComponents);
     applyVibeCodingStartBonuses(state, gameData.jokers, gameData.tarots);
 
-    // Add all components not already owned to pool
+    // Add remaining platform-filtered components to pool
     const ownedIds = new Set(state.componentPool.map(c => c.id));
-    const remaining = gameData.components.filter(c => !ownedIds.has(c.id));
+    const remaining = platformComponents.filter(c => !ownedIds.has(c.id));
     state.componentPool.push(...remaining);
 
     set({ gameState: state, currentScreen: 'blindSelect' });
@@ -242,14 +247,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const deployedIds = [...selectedForDeploy, ...selectedInHand];
     const deployed = handState?.hand.filter(c => deployedIds.includes(c.id)) ?? [];
     const deployedTags = [...new Set(deployed.flatMap(c => c.tags))];
-    const triggeredPatterns = detectPatterns(deployed, gameData.patterns);
+    const platform = gameState.platform;
+    const platformPatterns = filterPatternsByPlatform(gameData.patterns, platform.id);
+    const triggeredPatterns = detectPatterns(deployed, platformPatterns);
     const patternPreview = triggeredPatterns.map(p => ({ name: p.name, desc: p.desc }));
 
     let scorePreview: GameStore['scorePreview'] = null;
     if (deployed.length > 0) {
       const phase = gameState.scenario.phases[gameState.currentPhaseIndex];
       const baseline = getBaseline(gameState.school);
-      const panel = computePanel(deployed, baseline);
+      let panel = computePanel(deployed, baseline);
+
+      // Apply platform panel mechanics
+      if (platform.id === 'aws') {
+        panel = applyAwsMultiRegion(deployed, panel);
+      }
+      if (platform.id === 'selfhosted') {
+        panel = applySelfhostedCxPenalty(deployed, panel);
+      }
 
       // Joker activation
       const activeJokers = gameState.jokerSlots.filter(j => {
@@ -259,11 +274,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         return require_any_tags.some(t => deployedTags.includes(t));
       });
 
-      // Chips
+      // Chips (including platform chip bonus)
       const baseChips = deployed.reduce((sum, c) => sum + c.base_chips, 0);
       const patternChips = triggeredPatterns.reduce((sum, p) => sum + p.effects.chips_add, 0);
       const jokerChips = computeJokerChipBonus(activeJokers, deployed);
-      const chips = computeChips(deployed, patternChips, jokerChips);
+      const platformChips = getPlatformChipBonus(deployed, platform);
+      const chips = computeChips(deployed, patternChips, jokerChips + platformChips);
 
       // Mult
       const jokerMultAddTotal = computeJokerMultAdd(activeJokers, triggeredPatterns.length);
@@ -272,16 +288,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const jokerMults = jokerMultipliers;
       const mult = computeMult(triggeredPatterns, jokerMultAddTotal, jokerMultipliers);
 
-      // Constraints
-      const constraintResult = validateConstraints(panel, deployed, phase.constraints);
+      // Constraints (with platform mechanic: Azure Compliance Shield)
+      const constraintResult = validateConstraints(panel, deployed, phase.constraints, platform);
       const penalty = constraintResult.penalty;
       const budget = phase.capacity_budget + gameState.school.modifiers.capacity_budget_offset;
-      const { penalty: capacityPenalty } = validateDeployment(deployed, budget, gameState.school.modifiers);
+      const { penalty: capacityPenalty } = validateDeployment(deployed, budget, gameState.school.modifiers, platform);
       const totalPenalty = penalty + capacityPenalty;
 
       const finalScore = computeFinalScore(chips, mult, totalPenalty);
       scorePreview = {
-        panel, baseChips, patternChips, jokerChips, chips, mult,
+        panel, baseChips, patternChips, jokerChips: jokerChips + platformChips, chips, mult,
         patternMultAdds, jokerMults, penalty: totalPenalty,
         constraintFailures: constraintResult.failures,
         finalScore,
@@ -299,6 +315,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const phase = gameState.scenario.phases[gameState.currentPhaseIndex];
       const { handState } = get();
       const deployed = handState?.hand.filter(c => selectedForDeploy.includes(c.id)) ?? [];
+      const platform = gameState.platform;
+      const platformPatterns = filterPatternsByPlatform(gameData.patterns, platform.id);
 
       // Look up boss rule
       const bossRuleId = phase.boss_rule;
@@ -312,9 +330,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
         school: gameState.school,
         baseline: getBaseline(gameState.school),
         jokers: gameState.jokerSlots,
-        patterns: gameData.patterns,
+        patterns: platformPatterns,
         superPatterns: gameData.superPatterns,
         bossRule,
+        platform,
       });
 
       // Record result
@@ -398,8 +417,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { gameState, gameData } = get();
     if (!gameState) return;
     const interest = calculateInterest(gameState.gold);
+    // Filter shop components by platform (only generic + current platform)
+    const shopComponents = filterComponentsByPlatform(gameData.components, gameState.platform.id);
     const inventory = generateShopInventory(
-      gameData.components,
+      shopComponents,
       gameData.jokers,
       gameData.tarots,
       gameState.componentPool.map(c => c.id),

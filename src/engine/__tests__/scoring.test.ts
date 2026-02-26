@@ -16,6 +16,7 @@ function makeComponent(
     delta: overrides.delta,
     capacity_cost: 1,
     rarity: 'common',
+    platform: 'generic',
     ...overrides,
   };
 }

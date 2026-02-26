@@ -115,5 +115,46 @@
     "requires_any_tags": [],
     "requires_domain": null,
     "effects": { "mult_add": 8, "chips_add": 20 }
+  },
+
+  {
+    "id": "p_serverless_full_stack",
+    "name": "Serverless Full Stack",
+    "desc": "[AWS] compute+async + storage + gateway 全无服务器架构",
+    "requires_all_tags": ["compute", "async", "storage", "gateway"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "platform": "aws",
+    "effects": { "mult_add": 2, "chips_add": 8 }
+  },
+  {
+    "id": "p_data_lake",
+    "name": "数据湖",
+    "desc": "[GCP] 3+ data domain 组件构建数据湖",
+    "requires_all_tags": [],
+    "requires_any_tags": [],
+    "requires_domain": { "domain": "data", "count": 3 },
+    "platform": "gcp",
+    "effects": { "mult_add": 2, "chips_add": 6 }
+  },
+  {
+    "id": "p_enterprise_hybrid",
+    "name": "企业混合云",
+    "desc": "[Azure] ha + security + deploy 企业级混合部署",
+    "requires_all_tags": ["ha", "security", "deploy"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "platform": "azure",
+    "effects": { "mult_add": 3, "chips_add": 6 }
+  },
+  {
+    "id": "p_diy_full_stack",
+    "name": "DIY 全栈",
+    "desc": "[自建] 5 个 domain 各至少 1 张，全自建架构",
+    "requires_all_tags": [],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "platform": "selfhosted",
+    "effects": { "mult_add": 2, "chips_add": 10 }
   }
 ]

@@ -16,6 +16,7 @@ function makeComponent(id: string): Component {
     conflicts_tags: [],
     rarity: 'common',
     category: 'functional',
+    platform: 'generic',
   };
 }
 

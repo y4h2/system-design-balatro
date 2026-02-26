@@ -4,6 +4,8 @@ const RaritySchema = z.enum(['common', 'uncommon', 'rare']);
 
 export const DomainSchema = z.enum(['compute', 'data', 'network', 'defense', 'platform']);
 
+export const ComponentPlatformSchema = z.enum(['generic', 'aws', 'gcp', 'azure', 'selfhosted']);
+
 const DeltaSchema = z.object({
   perf: z.number(),
   rel: z.number(),
@@ -20,7 +22,9 @@ export const ComponentSchema = z.object({
   delta: DeltaSchema,
   capacity_cost: z.number().min(1),
   rarity: RaritySchema,
+  platform: ComponentPlatformSchema.default('generic'),
 });
 
 export type Component = z.infer<typeof ComponentSchema>;
 export type Domain = z.infer<typeof DomainSchema>;
+export type ComponentPlatform = z.infer<typeof ComponentPlatformSchema>;

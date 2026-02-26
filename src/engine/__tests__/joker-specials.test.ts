@@ -18,9 +18,22 @@ import type { Component, Joker } from '../../schemas/index.js';
 
 const data = loadGameData();
 
+const mockPlatform = {
+  id: 'aws' as const,
+  name: 'AWS',
+  desc: 'test',
+  positioning: 'test',
+  icon: '☁️',
+  accent: '#FF9900',
+  glow: 'rgba(255,153,0,0.4)',
+  passive: { type: 'capacity_discount' as const, factor: 0.9, desc: 'test' },
+  mechanic: { id: 'multi_region', name: 'Multi-Region', desc: 'test' },
+  exclusive_pattern_id: 'p_serverless_full_stack',
+};
+
 function makeState(schoolId: string) {
   const school = data.schools.find(s => s.id === schoolId)!;
-  return createGameState(data.scenarios[0], school);
+  return createGameState(data.scenarios[0], school, mockPlatform);
 }
 
 function makeComponent(overrides: Partial<Component> = {}): Component {
@@ -34,6 +47,7 @@ function makeComponent(overrides: Partial<Component> = {}): Component {
     delta: { perf: 1, rel: 1, cx: 0 },
     capacity_cost: 10,
     rarity: 'common',
+    platform: 'generic',
     ...overrides,
   };
 }
