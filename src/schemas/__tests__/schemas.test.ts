@@ -398,7 +398,6 @@ describe('SchoolSchema', () => {
     modifiers: {
       capacity_discount_tags: ['cloud', 'serverless'],
       capacity_discount_factor: 0.8,
-      event_severity_offset: -1,
       draft_rounds: 5,
       repair_count: 2,
       joker_slots: 3,
@@ -427,11 +426,11 @@ describe('SchoolSchema', () => {
       ...validSchool,
       modifiers: {
         ...validSchool.modifiers,
-        draft_options: 5,
         tarot_hand_size: 4,
+        deploy_slots_bonus: 1,
+        hand_size_bonus: 2,
+        discard_bonus: 1,
         baseline_overrides: { perf: 10 },
-        scoring_overrides: { bonus_round: true },
-        constraint_overrides: { max_latency: 200 },
         free_components: ['cmp_audit_log'],
         special_rules: { double_events: true, extra_capacity: 5 },
       },
@@ -439,8 +438,20 @@ describe('SchoolSchema', () => {
     const result = SchoolSchema.safeParse(withOptionals);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.modifiers.draft_options).toBe(5);
+      expect(result.data.modifiers.deploy_slots_bonus).toBe(1);
+      expect(result.data.modifiers.hand_size_bonus).toBe(2);
+      expect(result.data.modifiers.discard_bonus).toBe(1);
       expect(result.data.modifiers.free_components).toEqual(['cmp_audit_log']);
+    }
+  });
+
+  it('defaults new bonus fields to 0', () => {
+    const result = SchoolSchema.safeParse(validSchool);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.modifiers.deploy_slots_bonus).toBe(0);
+      expect(result.data.modifiers.hand_size_bonus).toBe(0);
+      expect(result.data.modifiers.discard_bonus).toBe(0);
     }
   });
 });

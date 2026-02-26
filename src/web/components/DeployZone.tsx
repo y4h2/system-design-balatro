@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Component } from '../../schemas/index.js';
 import ComponentCard from './ComponentCard';
+import { t } from '../i18n';
 
 interface DeployZoneProps {
   components: Component[];
@@ -11,7 +12,7 @@ export default function DeployZone({ components, onUndeploy }: DeployZoneProps) 
   return (
     <div className="min-h-[200px] rounded-xl border-2 border-dashed border-white/10 p-4">
       <div className="text-xs text-[var(--color-text-muted)] mb-3 uppercase tracking-wider">
-        Deploy Zone ({components.length} deployed)
+        {t('deploy.title')} ({components.length} {t('deploy.deployed')})
       </div>
       <div className="flex flex-wrap gap-3 max-h-[35vh] overflow-y-auto">
         <AnimatePresence>
@@ -33,7 +34,7 @@ export default function DeployZone({ components, onUndeploy }: DeployZoneProps) 
         </AnimatePresence>
         {components.length === 0 && (
           <div className="w-full text-center py-8 text-[var(--color-text-muted)] text-sm">
-            Click components below to deploy them
+            {t('deploy.emptyHint')}
           </div>
         )}
       </div>

@@ -32,6 +32,15 @@ export function checkJokerSpecialCondition(
       }
       return Math.max(...domainCounts.values()) >= 5;
     }
+    case 'all_different_domains': {
+      if (!context.deployed || context.deployed.length === 0) return false;
+      const domains = new Set(context.deployed.map(c => c.domain));
+      return domains.size === context.deployed.length;
+    }
+    case 'component_count_gte_4':
+      return context.deployedCount >= 4;
+    case 'capacity_over_budget':
+      return context.capacityUsed > context.capacityBudget;
     default:
       return true;
   }
@@ -45,8 +54,13 @@ export function computeJokerChipBonus(jokers: Joker[], deployed: Component[]): n
   let bonus = 0;
   for (const j of jokers) {
     if (j.effect.type === 'chips') {
-      const count = deployed.filter(c => c.tags.includes(j.effect.per_tag)).length;
-      bonus += j.effect.value * count;
+      const { per_tag, value } = j.effect;
+      if (per_tag) {
+        const count = deployed.filter(c => c.tags.includes(per_tag)).length;
+        bonus += value * count;
+      } else {
+        bonus += value;
+      }
     }
   }
   return bonus;

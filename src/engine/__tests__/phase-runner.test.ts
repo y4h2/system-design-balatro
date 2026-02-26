@@ -590,24 +590,24 @@ describe('phase-runner', () => {
   // ── School modifiers ──────────────────────────────────────────────
 
   describe('school modifiers', () => {
-    it('startup school adds +20 capacity_budget_offset', () => {
+    it('startup school adds +15 capacity_budget_offset', () => {
       const deployed = [comp('cmp_ec2')];
       const startupSchool = school('school_startup');
 
       const result = runPhase({
         phase: PHASE_SMALL, // budget=110
         deployed,
-        school: startupSchool, // offset=+20
+        school: startupSchool, // offset=+15
         baseline: DEFAULT_BASELINE,
         jokers: [],
         patterns: data.patterns,
         superPatterns: [],
       });
 
-      expect(result.capacityBudget).toBe(110 + 20);
+      expect(result.capacityBudget).toBe(110 + 15);
     });
 
-    it('minimalist school subtracts capacity with offset=-30', () => {
+    it('minimalist school subtracts capacity with offset=-20', () => {
       const deployed = [comp('cmp_ec2')];
       const minimalistSchool = school('school_minimalist');
 
@@ -621,11 +621,11 @@ describe('phase-runner', () => {
         superPatterns: [],
       });
 
-      expect(result.capacityBudget).toBe(110 - 30);
+      expect(result.capacityBudget).toBe(110 - 20);
     });
 
     it('performance school discounts capacity for cache-tagged components', () => {
-      // Memcached: cost=6, tags=[cache] -> performance discount 0.7 -> ceil(4.2)=5
+      // Memcached: cost=6, tags=[cache] -> performance discount 0.6 -> ceil(3.6)=4
       const deployed = [comp('cmp_memcached')];
       const perfSchool = school('school_performance');
 
@@ -633,14 +633,14 @@ describe('phase-runner', () => {
         phase: PHASE_SMALL,
         deployed,
         school: perfSchool,
-        baseline: { perf: 2, rel: 1, cx: 2 }, // perf school baseline_overrides: rel=1
+        baseline: { perf: 4, rel: 1, cx: 2 }, // perf school baseline_overrides: perf=4, rel=1
         jokers: [],
         patterns: data.patterns,
         superPatterns: [],
       });
 
-      // Performance school discounts cache tag: 6 * 0.7 = 4.2 -> ceil = 5
-      expect(result.capacityUsed).toBe(5);
+      // Performance school discounts cache tag: 6 * 0.6 = 3.6 -> ceil = 4
+      expect(result.capacityUsed).toBe(4);
     });
   });
 
@@ -744,8 +744,8 @@ describe('phase-runner', () => {
         bossRule: bossRule('boss_budget_halved'),
       });
 
-      // budget = floor((110 + 20) * 0.5) = 65
-      expect(result.capacityBudget).toBe(Math.floor((110 + 20) * 0.5));
+      // budget = floor((110 + 15) * 0.5) = 62
+      expect(result.capacityBudget).toBe(Math.floor((110 + 15) * 0.5));
     });
   });
 

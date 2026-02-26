@@ -1,6 +1,7 @@
 import type { Joker } from '../../schemas/index.js';
 import JokerCard from './JokerCard';
 import GoldDisplay from './GoldDisplay';
+import { t } from '../i18n';
 
 interface TopBarProps {
   jokers: Joker[];
@@ -16,12 +17,10 @@ export default function TopBar({ jokers, phaseName, phaseSubtitle, gold }: TopBa
       <div className="flex gap-2 flex-1">
         {jokers.length > 0 ? (
           jokers.map(j => (
-            <div key={j.id} className="w-40">
-              <JokerCard joker={j} />
-            </div>
+            <JokerCard key={j.id} joker={j} />
           ))
         ) : (
-          <span className="text-sm text-[var(--color-text-muted)]">No jokers</span>
+          <span className="text-sm text-[var(--color-text-muted)]">{t('topBar.noJokers')}</span>
         )}
       </div>
 

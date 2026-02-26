@@ -1,12 +1,7 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import GoldDisplay from '../components/GoldDisplay';
-
-const blindLabels: Record<string, string> = {
-  small: 'Small Blind',
-  big: 'Big Blind',
-  boss: 'Boss Blind',
-};
+import { t } from '../i18n';
 
 const blindColors: Record<string, string> = {
   small: 'border-blue-400/50',
@@ -32,7 +27,7 @@ export default function BlindSelectScreen() {
     <div className="min-h-screen flex flex-col items-center py-10 px-4">
       {/* Header */}
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-medium mb-2">Select Blind</h2>
+        <h2 className="text-2xl font-medium mb-2">{t('blindSelect.title')}</h2>
         <GoldDisplay amount={gameState.gold} />
       </div>
 
@@ -66,7 +61,7 @@ export default function BlindSelectScreen() {
                 <div className={`text-xs uppercase tracking-widest mb-1 ${
                   phase.blind === 'boss' ? 'text-red-400' : 'text-[var(--color-text-muted)]'
                 }`}>
-                  {blindLabels[phase.blind]}
+                  {t(`blind.${phase.blind}`)}
                 </div>
                 <div className="text-sm text-[var(--color-text-muted)]">{phase.subtitle}</div>
               </div>
@@ -74,11 +69,11 @@ export default function BlindSelectScreen() {
               {/* Stats */}
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-[var(--color-text-muted)]">Target</span>
+                  <span className="text-[var(--color-text-muted)]">{t('common.target')}</span>
                   <span className="neon-chips font-display font-bold">{phase.target_score}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--color-text-muted)]">Budget</span>
+                  <span className="text-[var(--color-text-muted)]">{t('common.capacity')}</span>
                   <span className="font-display">{phase.capacity_budget + gameState.school.modifiers.capacity_budget_offset}</span>
                 </div>
               </div>
@@ -95,17 +90,17 @@ export default function BlindSelectScreen() {
                   <div className="text-[var(--color-cx)]">CX &lt;= {constraints.max_cx}</div>
                 )}
                 {constraints.min_domains !== undefined && (
-                  <div className="text-purple-400">{constraints.min_domains}+ domains</div>
+                  <div className="text-purple-400">{constraints.min_domains}+ {t('play.domains')}</div>
                 )}
                 {constraints.required_tags && constraints.required_tags.length > 0 && (
-                  <div className="text-amber-400">Need: {constraints.required_tags.join(', ')}</div>
+                  <div className="text-amber-400">{t('play.needTags')}: {constraints.required_tags.join(', ')}</div>
                 )}
               </div>
 
               {/* Boss rule warning */}
               {phase.boss_rule && (
                 <div className="mt-3 px-2 py-1.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] text-center">
-                  Boss Rule: {phase.boss_rule}
+                  {t('blindSelect.bossRule')}: {phase.boss_rule}
                 </div>
               )}
 
@@ -114,7 +109,7 @@ export default function BlindSelectScreen() {
                 <div className={`mt-3 text-center text-sm font-display font-bold ${
                   result.passed ? 'text-[var(--color-functional)]' : result.skipped ? 'text-yellow-400' : 'text-red-400'
                 }`}>
-                  {result.skipped ? 'SKIPPED' : result.passed ? 'PASSED' : 'FAILED'}
+                  {result.skipped ? t('result.skipped') : result.passed ? t('result.passed') : t('result.failed')}
                 </div>
               )}
             </motion.div>
@@ -130,7 +125,7 @@ export default function BlindSelectScreen() {
           onClick={startPlay}
           className="px-8 py-3 rounded-xl bg-[var(--color-chips)] text-black font-bold text-lg hover:brightness-110 transition shadow-[var(--glow-chips)]"
         >
-          Play
+          {t('blindSelect.play')}
         </motion.button>
 
         {currentPhase.skippable && (
@@ -140,7 +135,7 @@ export default function BlindSelectScreen() {
             onClick={skipBlind}
             className="px-6 py-3 rounded-xl border border-white/20 text-[var(--color-text-muted)] hover:border-white/40 hover:text-white transition"
           >
-            Skip
+            {t('blindSelect.skip')}
           </motion.button>
         )}
       </div>

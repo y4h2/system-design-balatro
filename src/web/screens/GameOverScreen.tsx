@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
+import { t } from '../i18n';
 
 export default function GameOverScreen() {
   const { gameState } = useGameStore();
@@ -29,7 +30,7 @@ export default function GameOverScreen() {
             : '0 0 40px rgba(239,68,68,0.5)',
         }}
       >
-        {victory ? 'VICTORY' : 'DEFEAT'}
+        {victory ? t('result.victory') : t('result.defeat')}
       </motion.div>
 
       {/* Run info */}
@@ -40,7 +41,7 @@ export default function GameOverScreen() {
         className="text-center mb-8 text-[var(--color-text-muted)]"
       >
         <div>{gameState.school.name} × {gameState.scenario.name}</div>
-        <div className="text-sm mt-1">{passCount}/3 phases passed</div>
+        <div className="text-sm mt-1">{passCount}/3 {t('gameOver.phasesPassed')}</div>
       </motion.div>
 
       {/* Phase results */}
@@ -65,13 +66,13 @@ export default function GameOverScreen() {
             }`}
           >
             <div className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
-              {result.blind} Blind
+              {t(`blind.${result.blind}`)}
             </div>
 
             <div className={`text-2xl font-display font-bold mb-1 ${
               result.passed ? 'text-[var(--color-functional)]' : result.skipped ? 'text-yellow-400' : 'text-red-400'
             }`}>
-              {result.skipped ? 'SKIP' : result.passed ? 'PASS' : 'FAIL'}
+              {result.skipped ? t('result.skip') : result.passed ? t('result.pass') : t('result.fail')}
             </div>
 
             {!result.skipped && (
@@ -94,7 +95,7 @@ export default function GameOverScreen() {
         onClick={handlePlayAgain}
         className="px-10 py-4 rounded-xl bg-[var(--color-chips)] text-black font-bold text-xl hover:brightness-110 transition shadow-[var(--glow-chips)]"
       >
-        Play Again
+        {t('gameOver.playAgain')}
       </motion.button>
     </div>
   );

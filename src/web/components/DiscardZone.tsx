@@ -1,6 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import type { Component } from '../../schemas/index.js';
 import DraggableCard from './DraggableCard';
+import { t } from '../i18n';
 
 interface DiscardZoneProps {
   components: Component[];
@@ -21,7 +22,7 @@ export default function DiscardZone({ components, onReturn, discardsRemaining }:
       }`}
     >
       <div className="text-xs text-amber-400/80 mb-3 uppercase tracking-wider">
-        Discard Zone ({components.length}/5) — {discardsRemaining} uses left
+        {t('discard.title')} ({components.length}/5) — {discardsRemaining} {t('discard.usesLeft')}
       </div>
       <div className="flex flex-wrap gap-3 max-h-[30vh] overflow-y-auto">
         {components.map(c => (
@@ -35,7 +36,7 @@ export default function DiscardZone({ components, onReturn, discardsRemaining }:
         ))}
         {components.length === 0 && (
           <div className="w-full text-center py-4 text-amber-400/50 text-sm">
-            {isOver ? 'Drop here to stage for discard' : 'Drag hand cards here to stage them for discard'}
+            {isOver ? t('discard.dropHint') : t('discard.dragHint')}
           </div>
         )}
       </div>

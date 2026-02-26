@@ -14,7 +14,7 @@ const MultEffect = z.object({
 const ChipsEffect = z.object({
   type: z.literal('chips'),
   value: z.number(),
-  per_tag: z.string(),
+  per_tag: z.string().optional(),
 });
 
 const PatternEnhanceEffect = z.object({

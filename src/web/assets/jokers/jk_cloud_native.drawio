@@ -1,0 +1,18 @@
+<mxGraphModel dx="0" dy="0" grid="1" gridSize="8" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" background="#0F172A">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="2" value="K8s Cluster" style="rounded=1;fillColor=#1E293B;strokeColor=#334155;fontColor=#94A3B8;fontSize=9;fontStyle=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;container=1;collapsible=0;html=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="10" y="10" width="270" height="180" as="geometry"/></mxCell>
+<mxCell id="3" value="Ingress" style="rounded=1;fillColor=#4E3B10;strokeColor=#FBBF24;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="100" y="30" width="80" height="28" as="geometry"/></mxCell>
+<mxCell id="4" value="Svc" style="rounded=1;fillColor=#1E3A5F;strokeColor=#60A5FA;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="100" y="70" width="80" height="28" as="geometry"/></mxCell>
+<mxCell id="5" value="Node 1" style="rounded=1;fillColor=#1a2744;strokeColor=#334155;fontColor=#94A3B8;fontSize=9;fontStyle=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;container=1;collapsible=0;html=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="20" y="110" width="120" height="70" as="geometry"/></mxCell>
+<mxCell id="6" value="Node 2" style="rounded=1;fillColor=#1a2744;strokeColor=#334155;fontColor=#94A3B8;fontSize=9;fontStyle=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;container=1;collapsible=0;html=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="150" y="110" width="120" height="70" as="geometry"/></mxCell>
+<mxCell id="7" value="Pod" style="rounded=1;fillColor=#134E3A;strokeColor=#34D399;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;fontSize=8;" vertex="1" parent="1"><mxGeometry x="30" y="130" width="45" height="24" as="geometry"/></mxCell>
+<mxCell id="8" value="Pod" style="rounded=1;fillColor=#134E3A;strokeColor=#34D399;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;fontSize=8;" vertex="1" parent="1"><mxGeometry x="85" y="130" width="45" height="24" as="geometry"/></mxCell>
+<mxCell id="9" value="Pod" style="rounded=1;fillColor=#134E3A;strokeColor=#34D399;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;fontSize=8;" vertex="1" parent="1"><mxGeometry x="160" y="130" width="45" height="24" as="geometry"/></mxCell>
+<mxCell id="10" value="Pod" style="rounded=1;fillColor=#134E3A;strokeColor=#34D399;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;fontSize=8;" vertex="1" parent="1"><mxGeometry x="215" y="130" width="45" height="24" as="geometry"/></mxCell>
+<mxCell id="11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;fontColor=#94A3B8;fontSize=8;endArrow=block;endFill=1;" edge="1" parent="1" source="3" target="4"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;fontColor=#94A3B8;fontSize=8;endArrow=block;endFill=1;" edge="1" parent="1" source="4" target="7"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;fontColor=#94A3B8;fontSize=8;endArrow=block;endFill=1;" edge="1" parent="1" source="4" target="9"><mxGeometry relative="1" as="geometry"/></mxCell>
+  </root>
+</mxGraphModel>

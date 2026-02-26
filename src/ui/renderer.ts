@@ -113,6 +113,9 @@ export function renderSchoolInfo(school: School): void {
   console.log();
   const m = school.modifiers;
   console.log(chalk.white(`  修正 (Modifiers):`));
+  console.log(chalk.white(`    部署栏位 (Deploy Slots): ${5 + (m.deploy_slots_bonus ?? 0)}`));
+  console.log(chalk.white(`    手牌数 (Hand Size): ${8 + (m.hand_size_bonus ?? 0)}`));
+  console.log(chalk.white(`    弃牌次数 (Discards): ${3 + (m.discard_bonus ?? 0)}`));
   console.log(chalk.white(`    选牌轮次 (Draft Rounds): ${m.draft_rounds}`));
   console.log(chalk.white(`    修补次数 (Repair Count): ${m.repair_count}`));
   console.log(chalk.white(`    Joker 栏位: ${m.joker_slots}`));

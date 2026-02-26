@@ -1,6 +1,9 @@
 import type { Panel } from '../../engine/scoring.js';
+import { t } from '../i18n';
 
 interface ScorePanelProps {
+  blindLabel?: string;
+  subtitle?: string;
   panel?: Panel;
   baseChips?: number;
   patternChips?: number;
@@ -16,6 +19,7 @@ interface ScorePanelProps {
 }
 
 export default function ScorePanel({
+  blindLabel, subtitle,
   panel, baseChips, patternChips, jokerChips,
   chips, mult, patternMultAdds, jokerMults, penalty,
   constraintFailures, finalScore, targetScore,
@@ -25,29 +29,35 @@ export default function ScorePanel({
 
   return (
     <div className="bg-[var(--color-surface)] rounded-xl p-4 space-y-3">
-      {/* Panel stats (P/R/CX) for constraint display */}
-      {panel && (
-        <div className="space-y-2">
-          <PanelRow label="P" color="var(--color-perf)" value={panel.perf} />
-          <PanelRow label="R" color="var(--color-rel)" value={panel.rel} />
-          <PanelRow label="CX" color="var(--color-cx)" value={panel.cx} />
+      {/* Blind / phase info */}
+      {blindLabel && (
+        <div className="text-center rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+          <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">{blindLabel}</div>
+          {subtitle && <div className="text-sm font-medium mt-0.5">{subtitle}</div>}
         </div>
       )}
 
+      {/* Panel stats (P/R/CX) — always visible for layout stability */}
+      <div className="space-y-2">
+        <PanelRow label="P" color="var(--color-perf)" value={panel?.perf ?? 0} />
+        <PanelRow label="R" color="var(--color-rel)" value={panel?.rel ?? 0} />
+        <PanelRow label="CX" color="var(--color-cx)" value={panel?.cx ?? 0} />
+      </div>
+
       {/* Chips breakdown */}
       <div className="border-t border-white/10 pt-2">
-        <div className="text-xs text-[var(--color-text-muted)] mb-1">Chips</div>
+        <div className="text-xs text-[var(--color-text-muted)] mb-1">{t('score.chips')}</div>
         <div className={`font-display text-2xl font-bold ${hasPreview ? 'neon-chips' : 'text-[var(--color-text-muted)]/40'}`}>
           {chips !== undefined ? chips : 0}
         </div>
         {hasPreview && (
           <div className="text-[10px] text-[var(--color-text-muted)] mt-0.5 leading-relaxed">
-            <span className="text-white">{baseChips ?? 0}</span> base
+            <span className="text-white">{baseChips ?? 0}</span> {t('score.base')}
             {(patternChips ?? 0) > 0 && (
-              <span className="text-[var(--color-functional)]"> +{patternChips} pattern</span>
+              <span className="text-[var(--color-functional)]"> +{patternChips} {t('score.pattern')}</span>
             )}
             {(jokerChips ?? 0) > 0 && (
-              <span className="neon-gold"> +{jokerChips} joker</span>
+              <span className="neon-gold"> +{jokerChips} {t('score.joker')}</span>
             )}
           </div>
         )}
@@ -57,7 +67,7 @@ export default function ScorePanel({
 
       {/* Mult formula */}
       <div>
-        <div className="text-xs text-[var(--color-text-muted)] mb-1">Mult</div>
+        <div className="text-xs text-[var(--color-text-muted)] mb-1">{t('score.mult')}</div>
         <div className={`font-display text-2xl font-bold ${hasPreview ? 'neon-mult' : 'text-[var(--color-text-muted)]/40'}`}>
           {mult !== undefined ? mult.toFixed(1) : 0}
         </div>
@@ -76,7 +86,7 @@ export default function ScorePanel({
       {/* Penalty */}
       {penalty !== undefined && penalty > 0 && (
         <div className="text-xs text-red-400 text-center font-display">
-          -{penalty} penalty
+          -{penalty} {t('score.penalty')}
         </div>
       )}
 
@@ -91,7 +101,7 @@ export default function ScorePanel({
 
       {/* Score */}
       <div className="border-t border-white/10 pt-3">
-        <div className="text-xs text-[var(--color-text-muted)] mb-1">Score</div>
+        <div className="text-xs text-[var(--color-text-muted)] mb-1">{t('score.score')}</div>
         <div className={`font-display text-xl font-bold ${
           hasPreview
             ? passing ? 'text-[var(--color-functional)]' : 'text-white'
@@ -108,13 +118,13 @@ export default function ScorePanel({
 
       {/* Target */}
       <div className="border-t border-white/10 pt-3">
-        <div className="text-xs text-[var(--color-text-muted)] mb-1">Target</div>
+        <div className="text-xs text-[var(--color-text-muted)] mb-1">{t('score.target')}</div>
         <div className="font-display text-lg text-[var(--color-chips)]">{targetScore}</div>
       </div>
 
       {!hasPreview && (
         <div className="text-[11px] text-[var(--color-text-muted)] text-center italic pt-1">
-          Deploy components to preview
+          {t('score.deployToPreview')}
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { t } from '../i18n';
 
 export default function RunInfoPopup() {
   const [open, setOpen] = useState(false);
@@ -10,7 +11,7 @@ export default function RunInfoPopup() {
       <button
         onClick={() => setOpen(v => !v)}
         className="fixed bottom-4 left-4 z-40 w-9 h-9 rounded-full bg-[var(--color-surface-light)] border border-white/10 text-[var(--color-text-muted)] hover:text-white hover:border-white/30 transition flex items-center justify-center text-sm font-bold"
-        title="Run Info"
+        title={t('info.title')}
       >
         ?
       </button>
@@ -35,7 +36,7 @@ export default function RunInfoPopup() {
               className="fixed bottom-16 left-4 z-50 w-[420px] max-h-[75vh] overflow-y-auto rounded-xl bg-[var(--color-surface)] border border-white/10 shadow-2xl"
             >
               <div className="sticky top-0 flex items-center justify-between px-5 py-3 border-b border-white/5 bg-[var(--color-surface)]">
-                <span className="font-display text-sm neon-chips">Run Info</span>
+                <span className="font-display text-sm neon-chips">{t('info.title')}</span>
                 <button
                   onClick={() => setOpen(false)}
                   className="text-[var(--color-text-muted)] hover:text-white transition text-lg leading-none"
@@ -46,91 +47,85 @@ export default function RunInfoPopup() {
 
               <div className="px-5 py-4 space-y-5 text-sm text-[var(--color-text)]">
                 {/* Scoring */}
-                <Section title="Scoring Formula">
-                  <Formula>Score = round( Chips x Mult - Penalties )</Formula>
+                <Section title={t('info.scoringFormula')}>
+                  <Formula>{t('info.scoringFormulaDesc')}</Formula>
                   <Sub>
-                    <Formula>Chips = base_chips + pattern_chips + joker_chips</Formula>
+                    <Formula>{t('info.chipsFormula')}</Formula>
                     <p className="text-[var(--color-text-muted)]">
-                      Each component has base chips. Triggered patterns and jokers add bonus chips.
+                      {t('info.chipsDesc')}
                     </p>
                   </Sub>
                   <Sub>
-                    <Formula>Mult = (1 + pattern_mult + joker_mult) x joker_multipliers</Formula>
+                    <Formula>{t('info.multFormula')}</Formula>
                     <p className="text-[var(--color-text-muted)]">
-                      Patterns add to mult; active jokers multiply it further.
+                      {t('info.multDesc')}
                     </p>
                   </Sub>
                 </Section>
 
                 {/* Domains & Tags */}
-                <Section title="Domains & Tags">
-                  <p>
-                    Each component belongs to a <Tag>domain</Tag> (compute, data, network, defense, platform)
-                    and has 1-3 <Tag>tags</Tag> (cache, db, queue, ha, etc.).
-                  </p>
+                <Section title={t('info.domainsAndTags')}>
+                  <p>{t('info.domainsDesc')}</p>
                   <p className="text-[var(--color-text-muted)]">
-                    Domain combinations and tag combinations trigger different patterns.
+                    {t('info.domainsHint')}
                   </p>
                 </Section>
 
                 {/* Patterns */}
-                <Section title="Patterns (3 Tiers)">
-                  <p><span className="text-blue-400">Tier 1 - Domain:</span> Domain Pair (2 same), Triple (3 same), Wide Spectrum (4+ different). Almost always triggerable.</p>
-                  <p><span className="text-purple-400">Tier 2 - Theme:</span> Read Path (cache+db), Write Pipeline (queue+db), Observability (monitor), etc. Moderate effort.</p>
-                  <p><span className="text-amber-400">Tier 3 - Legendary:</span> CQRS (db+queue+cache), Zero Downtime (ha+deploy+monitor), Full Stack (3+ theme patterns). Big rewards.</p>
+                <Section title={t('info.patterns')}>
+                  <p><span className="text-blue-400">{t('info.patternT1')}</span></p>
+                  <p><span className="text-purple-400">{t('info.patternT2')}</span></p>
+                  <p><span className="text-amber-400">{t('info.patternT3')}</span></p>
                 </Section>
 
                 {/* Constraints */}
-                <Section title="Constraints">
+                <Section title={t('info.constraints')}>
                   <p className="text-[var(--color-text-muted)]">
-                    Each phase has visible constraints (min P, min R, max CX, required domains/tags).
-                    Each failed constraint costs a fixed penalty shown in the sidebar.
+                    {t('info.constraintsDesc')}
                   </p>
                 </Section>
 
                 {/* Capacity */}
-                <Section title="Capacity">
-                  <p>Each component costs capacity. Over-budget penalty:</p>
-                  <Formula>penalty = (used - budget) x 5</Formula>
+                <Section title={t('info.capacity')}>
+                  <p>{t('info.capacityDesc')}</p>
+                  <Formula>{t('info.capacityFormula')}</Formula>
                 </Section>
 
                 {/* Discard */}
-                <Section title="Discard & Draw">
+                <Section title={t('info.discardAndDraw')}>
                   <ul className="list-disc list-inside text-[var(--color-text-muted)] space-y-0.5">
-                    <li>Max <span className="text-white">5</span> cards per discard</li>
-                    <li><span className="text-white">3</span> discard chances per phase (jokers can add more)</li>
-                    <li>Discarded cards are removed for the phase</li>
+                    <li>{t('info.discardMax')}</li>
+                    <li>{t('info.discardChances')}</li>
+                    <li>{t('info.discardRemoved')}</li>
                   </ul>
                 </Section>
 
                 {/* Jokers */}
-                <Section title="Joker Effects">
+                <Section title={t('info.jokerEffects')}>
                   <p className="text-[var(--color-text-muted)]">
-                    Jokers have diverse effects: multiply score, add chips per tag, enhance patterns,
-                    increase hand size/discards, or earn gold. Check each joker's description.
+                    {t('info.jokerDesc')}
                   </p>
                 </Section>
 
                 {/* Tarots */}
-                <Section title="Tarot Effects">
+                <Section title={t('info.tarotEffects')}>
                   <p className="text-[var(--color-text-muted)]">
-                    Tarots modify your components: add tags, boost chips, change domain, or reduce capacity cost.
-                    Use them strategically to trigger patterns you're close to completing.
+                    {t('info.tarotDesc')}
                   </p>
                 </Section>
 
                 {/* Game flow */}
-                <Section title="Game Flow">
+                <Section title={t('info.gameFlow')}>
                   <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] flex-wrap">
-                    <Phase label="Small Blind" />
+                    <Phase label={t('blind.small')} />
                     <Arrow />
-                    <Phase label="Shop" />
+                    <Phase label={t('info.shop')} />
                     <Arrow />
-                    <Phase label="Big Blind" />
+                    <Phase label={t('blind.big')} />
                     <Arrow />
-                    <Phase label="Shop" />
+                    <Phase label={t('info.shop')} />
                     <Arrow />
-                    <Phase label="Boss Blind" />
+                    <Phase label={t('blind.boss')} />
                   </div>
                 </Section>
               </div>
@@ -161,14 +156,6 @@ function Formula({ children }: { children: React.ReactNode }) {
 
 function Sub({ children }: { children: React.ReactNode }) {
   return <div className="pl-3 border-l border-white/10 space-y-1">{children}</div>;
-}
-
-function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[11px] px-1.5 py-0.5 rounded bg-white/10 text-white font-medium">
-      {children}
-    </span>
-  );
 }
 
 function Phase({ label }: { label: string }) {

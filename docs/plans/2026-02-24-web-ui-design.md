@@ -8,10 +8,10 @@ Build a Balatro-inspired web UI for the existing CLI card game. The game engine 
 
 - Dark green felt background with noise texture
 - Glowing neon score counters (chips x mult in amber/cyan)
-- Component cards styled as architecture diagram tiles with mini-icons
-- Color coding: functional = green border, defensive = blue, rare = gold shimmer
+- Component cards styled as poker-style cards with technology brand icons
+- Color coding by domain: compute=blue, data=green, network=amber, defense=red, platform=purple
 - Bold monospace display font for scores, clean sans-serif for card text
-- Card animations: deal/fan, deploy slide-up, score tick-up, pattern trigger flash
+- Card animations: fan arc, deploy slide-up, score tick-up, pattern trigger flash
 
 ## Architecture
 
@@ -19,11 +19,9 @@ Build a Balatro-inspired web UI for the existing CLI card game. The game engine 
 src/engine/          <- Pure game logic (UNCHANGED, zero web dependencies)
 src/web/
   store/             <- Zustand store: thin wrapper around engine functions
-  hooks/             <- React hooks for UI concerns (animations, timers)
+  icons/             <- Icon mappings (Iconify card icons, domain suits)
   components/        <- Presentational components (Card, ScorePanel, etc.)
   screens/           <- Screen compositions (PlayScreen, ShopScreen, etc.)
-  layouts/           <- Shared layout shells
-  assets/            <- Icons, fonts, textures
 ```
 
 ### Logic/UI Separation
@@ -39,104 +37,176 @@ The Zustand store is the only layer that imports from `engine/`. React component
 State-machine driven, no router. A single `currentScreen` field in the store controls which screen renders.
 
 ```typescript
-type Screen = 'title' | 'draft' | 'blindSelect' | 'play' | 'settlement' | 'shop';
+type Screen = 'title' | 'blindSelect' | 'play' | 'settlement' | 'shop' | 'gameOver';
 ```
+
+## Card Design
+
+### Component Card (160×240px)
+
+Poker-style layout with technology brand icons from Iconify API:
+
+```
+┌─────────────────────┐
+│ 🔵 COMPUTE          │  ← Domain suit icon + domain label
+│                     │
+│    ┌───────────┐    │
+│    │  [BRAND]  │    │  ← Center: brand logo (48px)
+│    │   LOGO    │    │     e.g. logos:aws-ec2, devicon:redis
+│    └───────────┘    │
+│                     │
+│      EC2 实例       │  ← Card name (centered)
+│    compute  async   │  ← Tags (fixed 2-row height)
+│                     │
+│  +3 筹码 P+1 R+0    │  ← Stats: chips + delta values
+│  容量: 8            │  ← Footer: capacity cost + price
+│                  🔵 │  ← Bottom-right: domain suit (faded)
+└─────────────────────┘
+```
+
+- **Domain icons** (corner suits): Lucide icons colored per domain
+- **Brand icons** (center): Iconify API — `logos:*`, `devicon:*`, `mdi:*`, `lucide:*`
+- **Rarity**: Indicated by border glow (common/uncommon/rare)
+- **Sizes**: md=160×240px, sm=120×160px — all cards uniform
+
+### Joker Card (160×240px)
+
+Same dimensions as component cards. Shows name, multiplier, description.
+
+### Tarot Card (160×240px)
+
+Same dimensions as component cards. Shows name, type badge (reveal/modify), description.
+
+### Icon Mapping
+
+- **File**: `src/web/icons/cardIcons.ts`
+- `domainIcons` — 5 domain suit icons (lucide)
+- `domainColors` — domain color palette
+- `cardIcons` — brand icon per card ID (60 cards mapped)
+- `getCardIconUrl()` — builds Iconify REST API URL
+
+### Icon Components
+
+- `CardIcon.tsx` — renders `<img>` from Iconify API, fallback on error
+- `DomainSuit.tsx` — small domain suit icon with color + glow
 
 ## Screens
 
 ### 1. Title Screen
-- School selection (6 schools with descriptions)
-- Scenario selection (3 scenarios with phase previews)
+- School selection with descriptions
+- Scenario selection with phase previews
 - Start button
 
-### 2. Draft Screen
-- Shows 3 (or 2 for Vibe Coding) component cards per round
-- Player picks 1, it animates into the pool
-- Round counter (e.g., "Round 3/10")
-- Running pool display at bottom
-
-### 3. Blind Selection Screen
+### 2. Blind Selection Screen
 - Shows 3 phases: Small / Big / Boss
 - Current phase highlighted, target score + rewards shown
-- Skip button with skip reward preview (for skippable phases)
+- Skip button for skippable phases
 - Boss rule warning on boss phase
 
-### 4. Play Screen (Main)
+### 3. Play Screen (Main)
+
 ```
-+--------------------------------------------------+
-| [Joker Slots]           [Phase Info]    [Gold: $] |
-+--------------+-----------------------------------+
-|              |                                    |
-|  Score       |   Deploy Zone                      |
-|  Panel       |   (deployed component cards)       |
-|              |                                    |
-|  Chips: 12   |                                    |
-|  Mult: x5    |------------------------------------+
-|  ----------  |                                    |
-|  Target: 48  |   Component Pool (hand)            |
-|              |   (selectable cards, drag/click)    |
-|  [Patterns]  |                                    |
-|  [Risks]     |   [Deploy] [Undeploy] [Run Phase]  |
-+--------------+------------------------------------+
+┌──────────┬──────────────────────────────────────────────┐
+│          │  [Joker Slots]            [Tarot Slots →]    │
+│  Score   │  (160×240 each)           (160×240, right)   │
+│  Panel   ├──────────────────────────────────────────────┤
+│  (w-80)  │                                              │
+│          │  Deploy Zone (deployed cards)                 │
+│ ┌──────┐ │                                              │
+│ │Blind │ ├──────────────────────────────────────┬───────┤
+│ │Info  │ │                                      │       │
+│ └──────┘ │  Hand Zone (fan arc layout)          │ Deck  │
+│          │  ╭─ ─ ─ ─ ─ ─ ─ ─ ─ ─╮             │ Pile  │
+│ P R CX   │  │ cards with arc     │             │       │
+│ Chips    │  │ rotation, overlap,  │             │       │
+│ ×        │  │ selected pop up    │              │       │
+│ Mult     │  ╰─ ─ ─ ─ ─ ─ ─ ─ ─ ─╯             │       │
+│ Score    │                                      │       │
+│ Target   │  [ 弃牌 (n/5) [3] ]  [ 出牌 (n/5) ] │       │
+│          │                                      │       │
+│ Gold     ├──────────────────────────────────────┴───────┤
+│ Hand/弃  │                                              │
+│ Constr.  │                                              │
+│ Patterns │                                              │
+└──────────┴──────────────────────────────────────────────┘
 ```
 
-- Left sidebar: score panel, triggered patterns, risk report
-- Center top: deployed cards
-- Center bottom: hand (component pool), action buttons
-- Top bar: joker slots, phase info, gold
-- Tarot button (use before/after deploy)
+#### Layout Details
 
-### 5. Settlement Screen
-- Animated score breakdown (panel -> chips -> mult -> penalties -> final)
+- **Left sidebar** (w-80 = 320px):
+  - Blind info (highlighted box at top of ScorePanel)
+  - Score panel: P/R/CX bars, chips, mult, score, target
+  - Gold display
+  - Hand count / discard remaining
+  - Constraints
+  - Pattern preview
+
+- **Top bar** (full width, col-span-2):
+  - Joker slots (left, 160×240 each)
+  - Tarot slots (right-aligned, 160×240 each)
+
+- **Center**: Deploy zone → Hand zone → Action buttons
+
+- **Hand zone** (Balatro-style fan):
+  - Cards overlap horizontally (min 60px visible per card, fits 10 in ~900px)
+  - Arc layout: cards rotate along a curve (±10° spread, cos-based vertical offset)
+  - Click to select → card pops up 30px (stays in fan)
+  - Hover → card lifts 16px, z-index 200 (keeps rotation)
+  - Selected cards have z-index 100+ (above unselected)
+
+- **Action buttons**:
+  - **弃牌** (discard): max 5 cards per action, shows `(selected/5) [remaining]`
+  - **出牌** (deploy): max deploy-slots cards, shows `(selected/max)` — immediately runs phase and goes to settlement
+
+- **No separate discard zone** — all interaction happens in the hand
+
+### 4. Settlement Screen
+- Animated score breakdown (panel → chips → mult → penalties → final)
 - Pass/fail result with target comparison
 - Triggered patterns and super patterns highlighted
-- Event result (if any)
-- "Continue" or "Repair" button
+- "Continue" button
 
-### 6. Shop Screen
+### 5. Shop Screen
 - Top row: joker/tarot cards for sale
 - Bottom row: component cards for sale
 - Left sidebar: gold, inventory summary
-- Buy/sell/remove actions
-- Reroll button
+- Buy/sell actions
 - "Next Round" button
+
+### 6. Game Over Screen
+- Final results: phases passed, scores
+- "Play Again" button
 
 ## State Management (Zustand)
 
 ```typescript
 interface GameStore {
   // Data
-  gameData: GameData | null;
+  gameData: GameData;
   gameState: GameState | null;
   currentScreen: Screen;
 
-  // Phase
-  draftChoices: Component[];
-  selectedForDeploy: Component[];
+  // Play
+  handState: HandState | null;
+  selectedForDeploy: string[];   // cards in deploy zone
+  selectedInHand: string[];      // cards selected (popped up) in hand
+  patternPreview: string[];
+  scorePreview: ScorePreview | null;
   settlement: PhaseSettlement | null;
-  currentEvent: Event | null;
 
   // Shop
   shopInventory: ShopInventory | null;
 
   // Actions
-  init(): void;
-  selectSchoolAndScenario(schoolId: string, scenarioId: string): void;
-  generateDraft(): void;
-  pickDraftComponent(component: Component): void;
-  toggleDeployComponent(component: Component): void;
-  runPhase(): void;
-  repair(component: Component): void;
+  startGame(schoolId, scenarioId): void;
   skipBlind(): void;
-  openShop(): void;
-  buyComponent(component: Component): void;
-  sellComponent(component: Component): void;
-  buyJoker(joker: Joker): void;
-  sellJoker(joker: Joker): void;
-  buyTarot(tarot: Tarot): void;
-  useTarot(tarotIndex: number): void;
-  removeComponent(component: Component): void;
-  nextPhase(): void;
+  startPlay(): void;
+  toggleHandSelect(componentId): void;  // select/deselect in hand
+  deploySelected(): void;               // deploy + run phase
+  toggleDeploy(componentId): void;      // undeploy from deploy zone
+  executeDiscard(): void;               // discard selected + draw
+  updatePreview(): void;
+  // ... shop actions, tarot, etc.
 }
 ```
 
@@ -146,6 +216,8 @@ interface GameStore {
 - Zustand (state)
 - Tailwind CSS v4 (styling)
 - Framer Motion (card animations)
+- Iconify REST API (card icons — no npm package needed)
+- @dnd-kit (drag and drop)
 - No router needed
 
 ## Component Hierarchy
@@ -153,34 +225,33 @@ interface GameStore {
 ```
 App
   TitleScreen
-    SchoolCard
-    ScenarioCard
-  DraftScreen
-    DraftChoiceCard
-    ComponentPoolPreview
+    SchoolCard, ScenarioCard
   BlindSelectScreen
-    BlindCard (x3)
+    BlindCard (×3)
   PlayScreen
-    TopBar (JokerSlots, PhaseInfo, GoldDisplay)
-    ScorePanel (ChipsDisplay, MultDisplay, PatternList, RiskReport)
-    DeployZone (ComponentCard[])
-    HandZone (ComponentCard[], ActionButtons)
-    TarotButton
+    ScorePanel (blind info, P/R/CX, chips, mult, score, target)
+    GoldDisplay
+    JokerCard[] + TarotCard[] (top bar)
+    DeployZone → ComponentCard[]
+    HandZone → DraggableCard[] (fan arc layout)
+    DeckPile
+    ActionButtons (弃牌 / 出牌)
   SettlementScreen
-    ScoreBreakdown
-    EventResultPanel
-    PatternHighlights
+    ScoreBreakdown, PatternHighlights
   ShopScreen
-    ShopItemRow (jokers/tarots)
-    ShopItemRow (components)
+    ShopItemRow (jokers/tarots/components)
     ShopSidebar (gold, inventory)
+  GameOverScreen
 ```
 
-## Key Presentational Components
+## Key Components
 
-- **ComponentCard** — shows name, tags, delta (perf/rel/cx), capacity cost, rarity border color
-- **JokerCard** — shows name, condition summary, multiplier, active/inactive state
-- **TarotCard** — shows name, effect description
-- **ScorePanel** — chips x mult with animated counters
+- **ComponentCard** — poker-style card: domain suit icon, brand logo center, name, tags (2 rows fixed), stats, capacity. 160×240px uniform.
+- **CardIcon** — renders Iconify API `<img>`, fallback on error
+- **DomainSuit** — small domain icon (16px) with domain color
+- **JokerCard** — 160×240px, name, multiplier, description
+- **TarotCard** — 160×240px, name, type badge, description
+- **HandZone** — fan arc layout with overlap, select-to-pop-up interaction
+- **DeployZone** — shows deployed cards with animated enter/exit
+- **ScorePanel** — blind info + chips × mult with animated counters
 - **PatternBadge** — triggered pattern with glow effect
-- **RiskBadge** — exposed/sealed risk indicators

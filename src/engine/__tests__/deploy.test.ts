@@ -34,24 +34,24 @@ describe('deploy + capacity system', () => {
     });
 
     it('applies school discount for matching tags (Performance school)', () => {
-      // Performance discount tags: ["cache", "edge"], factor: 0.7
+      // Performance discount tags: ["cache", "edge"], factor: 0.6
       const redis = data.components.find(c => c.id === 'cmp_redis')!;
       expect(redis.tags).toContain('cache');
       expect(redis.capacity_cost).toBe(10);
-      // 10 * 0.7 = 7 -> ceil -> 7
-      expect(getEffectiveCapacityCost(redis, performanceSchool.modifiers)).toBe(7);
+      // 10 * 0.6 = 6 -> ceil -> 6
+      expect(getEffectiveCapacityCost(redis, performanceSchool.modifiers)).toBe(6);
 
       const cloudfront = data.components.find(c => c.id === 'cmp_cloudfront')!;
       expect(cloudfront.tags).toContain('edge');
       expect(cloudfront.capacity_cost).toBe(10);
-      // 10 * 0.7 = 7
-      expect(getEffectiveCapacityCost(cloudfront, performanceSchool.modifiers)).toBe(7);
+      // 10 * 0.6 = 6
+      expect(getEffectiveCapacityCost(cloudfront, performanceSchool.modifiers)).toBe(6);
 
       const memcached = data.components.find(c => c.id === 'cmp_memcached')!;
       expect(memcached.tags).toContain('cache');
       expect(memcached.capacity_cost).toBe(6);
-      // 6 * 0.7 = 4.2 -> ceil -> 5
-      expect(getEffectiveCapacityCost(memcached, performanceSchool.modifiers)).toBe(5);
+      // 6 * 0.6 = 3.6 -> ceil -> 4
+      expect(getEffectiveCapacityCost(memcached, performanceSchool.modifiers)).toBe(4);
     });
 
     it('returns original cost for non-matching tags', () => {

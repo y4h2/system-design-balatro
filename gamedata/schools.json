@@ -1,96 +1,105 @@
 [
   {
     "id": "school_sre",
-    "name": "SRE \u6d41\u6d3e",
-    "desc": "\u6211\u4eec\u4e0d\u6015\u8d35\uff0c\u6015\u7684\u662f\u6302",
+    "name": "SRE 流派",
+    "desc": "我们不怕贵，怕的是挂",
     "modifiers": {
-      "capacity_discount_tags": ["ha"],
+      "capacity_discount_tags": ["ha", "monitor"],
       "capacity_discount_factor": 0.7,
-      "event_severity_offset": 1,
       "draft_rounds": 10,
-      "repair_count": 1,
+      "repair_count": 2,
       "joker_slots": 4,
       "capacity_budget_offset": 0,
-      "baseline_overrides": {}
+      "deploy_slots_bonus": 0,
+      "hand_size_bonus": 0,
+      "discard_bonus": 1,
+      "baseline_overrides": { "rel": 3 }
     }
   },
   {
     "id": "school_startup",
-    "name": "\u521b\u4e1a\u6d41\u6d3e",
-    "desc": "\u5148\u4e0a\u7ebf\u518d\u8bf4",
+    "name": "创业流派",
+    "desc": "先上线再说",
     "modifiers": {
-      "capacity_discount_tags": [],
-      "capacity_discount_factor": 1.0,
-      "event_severity_offset": 0,
+      "capacity_discount_tags": ["async", "queue"],
+      "capacity_discount_factor": 0.7,
       "draft_rounds": 12,
       "repair_count": 1,
       "joker_slots": 4,
-      "capacity_budget_offset": 20,
-      "baseline_overrides": {},
-      "constraint_overrides": { "delivery_weeks_factor": 0.5 }
+      "capacity_budget_offset": 15,
+      "deploy_slots_bonus": 0,
+      "hand_size_bonus": 2,
+      "discard_bonus": 0,
+      "baseline_overrides": {}
     }
   },
   {
     "id": "school_minimalist",
-    "name": "\u6781\u7b80\u6d41\u6d3e",
+    "name": "极简流派",
     "desc": "less is more",
     "modifiers": {
       "capacity_discount_tags": [],
       "capacity_discount_factor": 1.0,
-      "event_severity_offset": 0,
       "draft_rounds": 8,
       "repair_count": 2,
       "joker_slots": 5,
-      "capacity_budget_offset": -30,
-      "baseline_overrides": {},
-      "scoring_overrides": { "cx_as_positive": true }
+      "capacity_budget_offset": -20,
+      "deploy_slots_bonus": -1,
+      "hand_size_bonus": -2,
+      "discard_bonus": 1,
+      "baseline_overrides": { "perf": 3, "rel": 3, "cx": 3 }
     }
   },
   {
     "id": "school_compliance",
-    "name": "\u5408\u89c4\u6d41\u6d3e",
-    "desc": "\u5408\u89c4\u5148\u884c",
+    "name": "合规流派",
+    "desc": "合规先行",
     "modifiers": {
-      "capacity_discount_tags": [],
-      "capacity_discount_factor": 1.0,
-      "event_severity_offset": 0,
+      "capacity_discount_tags": ["security", "gateway"],
+      "capacity_discount_factor": 0.7,
       "draft_rounds": 10,
       "repair_count": 1,
       "joker_slots": 3,
       "capacity_budget_offset": 0,
-      "baseline_overrides": {},
+      "deploy_slots_bonus": 1,
+      "hand_size_bonus": 0,
+      "discard_bonus": 0,
+      "baseline_overrides": { "rel": 3 },
       "free_components": ["cmp_audit_log", "cmp_encryption"]
     }
   },
   {
     "id": "school_performance",
-    "name": "\u6027\u80fd\u6d41\u6d3e",
-    "desc": "\u5feb\u5c31\u662f\u6b63\u4e49",
+    "name": "性能流派",
+    "desc": "快就是正义",
     "modifiers": {
       "capacity_discount_tags": ["cache", "edge"],
-      "capacity_discount_factor": 0.7,
-      "event_severity_offset": 0,
+      "capacity_discount_factor": 0.6,
       "draft_rounds": 10,
       "repair_count": 1,
       "joker_slots": 4,
       "capacity_budget_offset": 0,
-      "baseline_overrides": { "rel": 1 }
+      "deploy_slots_bonus": 0,
+      "hand_size_bonus": 0,
+      "discard_bonus": 0,
+      "baseline_overrides": { "perf": 4, "rel": 1 }
     }
   },
   {
     "id": "school_vibe_coding",
-    "name": "Vibe Coding \u6d41\u6d3e",
+    "name": "Vibe Coding 流派",
     "desc": "ship it, vibes only",
     "modifiers": {
       "capacity_discount_tags": [],
       "capacity_discount_factor": 1.0,
-      "event_severity_offset": 0,
       "draft_rounds": 12,
-      "draft_options": 2,
-      "repair_count": 1,
+      "repair_count": 0,
       "joker_slots": 5,
       "tarot_hand_size": 3,
       "capacity_budget_offset": 0,
+      "deploy_slots_bonus": 1,
+      "hand_size_bonus": 1,
+      "discard_bonus": 1,
       "baseline_overrides": {},
       "special_rules": {
         "start_with_random_joker": true,

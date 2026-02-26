@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
+import { t } from '../i18n';
 
 const schoolTheme: Record<string, { accent: string; glow: string; icon: string }> = {
   school_sre:         { accent: '#3498db', glow: 'rgba(52,152,219,0.4)',  icon: '🛡️' },
@@ -12,7 +13,7 @@ const schoolTheme: Record<string, { accent: string; glow: string; icon: string }
 };
 
 export default function TitleScreen() {
-  const { gameData, startGame } = useGameStore();
+  const { gameData, startGame, setScreen } = useGameStore();
   const [schoolIndex, setSchoolIndex] = useState(0);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
@@ -40,9 +41,9 @@ export default function TitleScreen() {
         className="text-center mb-8"
       >
         <h1 className="font-display text-4xl sm:text-5xl font-bold mb-1 neon-chips">
-          System Design
+          {t('title.gameName')}
         </h1>
-        <p className="text-sm text-[var(--color-text-muted)]">Architecture Card Game</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t('title.subtitle')}</p>
       </motion.div>
 
       {/* Carousel: arrow + card + info + arrow */}
@@ -123,21 +124,33 @@ export default function TitleScreen() {
               {/* Stats grid */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-[var(--color-text-muted)]">Initial Pool</span>
+                  <span className="text-[var(--color-text-muted)]">{t('title.deploySlots')}</span>
+                  <span className="font-display font-medium">{5 + (m.deploy_slots_bonus ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--color-text-muted)]">{t('title.handSize')}</span>
+                  <span className="font-display font-medium">{8 + (m.hand_size_bonus ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--color-text-muted)]">{t('title.discards')}</span>
+                  <span className="font-display font-medium">{3 + (m.discard_bonus ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--color-text-muted)]">{t('title.initialPool')}</span>
                   <span className="font-display font-medium">{m.draft_rounds}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--color-text-muted)]">Jokers</span>
+                  <span className="text-[var(--color-text-muted)]">{t('common.jokers')}</span>
                   <span className="font-display font-medium">{m.joker_slots}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--color-text-muted)]">Budget</span>
+                  <span className="text-[var(--color-text-muted)]">{t('title.budget')}</span>
                   <span className="font-display font-medium">
                     {m.capacity_budget_offset >= 0 ? '+' : ''}{m.capacity_budget_offset}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--color-text-muted)]">Repair</span>
+                  <span className="text-[var(--color-text-muted)]">{t('title.repair')}</span>
                   <span className="font-display font-medium">{m.repair_count}</span>
                 </div>
               </div>
@@ -145,7 +158,7 @@ export default function TitleScreen() {
               {/* Special modifiers hint */}
               {m.capacity_discount_tags && m.capacity_discount_tags.length > 0 && (
                 <div className="mt-3 text-[11px] text-[var(--color-text-muted)] border-t border-white/5 pt-2">
-                  Discount tags: {m.capacity_discount_tags.slice(0, 3).join(', ')}
+                  {t('title.discountTags')}: {m.capacity_discount_tags.slice(0, 3).join(', ')}
                   {m.capacity_discount_tags.length > 3 && ` +${m.capacity_discount_tags.length - 3}`}
                 </div>
               )}
@@ -171,7 +184,7 @@ export default function TitleScreen() {
         className="w-full max-w-2xl mb-8"
       >
         <div className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider mb-3 text-center">
-          Scenario
+          {t('title.scenario')}
         </div>
         <div className="flex gap-3 justify-center flex-wrap">
           {gameData.scenarios.map((sc) => (
@@ -191,7 +204,14 @@ export default function TitleScreen() {
         </div>
       </motion.div>
 
-      {/* Start Game button - always visible, disabled until scenario selected */}
+      {/* Buttons row */}
+      <div className="flex items-center gap-4">
+      <button
+        onClick={() => setScreen('collection')}
+        className="px-8 py-4 rounded-2xl font-bold text-lg border-2 border-white/20 text-[var(--color-text-muted)] hover:border-white/40 hover:text-white transition"
+      >
+        {t('collection.title')}
+      </button>
       <button
         onClick={() => selectedScenario && startGame(currentSchool.id, selectedScenario)}
         disabled={!selectedScenario}
@@ -206,8 +226,9 @@ export default function TitleScreen() {
             : 'none',
         }}
       >
-        开始游戏
+        {t('title.startGame')}
       </button>
+      </div>
     </div>
   );
 }

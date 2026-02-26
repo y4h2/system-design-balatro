@@ -3,18 +3,20 @@ import type { GameState } from './state.js';
 
 // ── Shop inventory generation ──
 
+/** Index into the PACK_CATALOG array (UI-level pack type) */
 export interface ShopInventory {
   components: Component[];  // up to 3 random
   jokers: Joker[];          // up to 3 random
-  tarots: Tarot[];          // up to 2 random
+  packIndices: number[];    // indices into PACK_CATALOG (up to 2 packs)
 }
 
 export function generateShopInventory(
   allComponents: Component[],
   allJokers: Joker[],
-  allTarots: Tarot[],
+  _allTarots: Tarot[],
   ownedComponentIds: string[],
   ownedJokerIds: string[],
+  packCatalogSize: number,
 ): ShopInventory {
   const availComponents = allComponents
     .filter(c => !ownedComponentIds.includes(c.id))
@@ -26,11 +28,17 @@ export function generateShopInventory(
     .sort(() => Math.random() - 0.5)
     .slice(0, 3);
 
-  const availTarots = allTarots
+  // Pick 2 random pack types from the catalog
+  const indices = Array.from({ length: packCatalogSize }, (_, i) => i)
     .sort(() => Math.random() - 0.5)
     .slice(0, 2);
 
-  return { components: availComponents, jokers: availJokers, tarots: availTarots };
+  return { components: availComponents, jokers: availJokers, packIndices: indices };
+}
+
+/** Draw N random tarots for an opened pack */
+export function drawPackTarots(allTarots: Tarot[], count: number): Tarot[] {
+  return [...allTarots].sort(() => Math.random() - 0.5).slice(0, count);
 }
 
 // ── Pricing ──

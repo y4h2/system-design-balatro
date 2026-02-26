@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import PatternBadge from '../components/PatternBadge';
+import { t } from '../i18n';
 
 function useAnimatedCounter(target: number, duration = 1200, delay = 500) {
   const [display, setDisplay] = useState(0);
@@ -64,7 +65,7 @@ export default function SettlementScreen() {
         }`}
         style={{ textShadow: passed ? '0 0 30px rgba(46,204,113,0.5)' : '0 0 30px rgba(239,68,68,0.5)' }}
       >
-        {passed ? 'PASSED' : 'FAILED'}
+        {passed ? t('result.passed') : t('result.failed')}
       </motion.div>
 
       {/* Score display */}
@@ -76,7 +77,7 @@ export default function SettlementScreen() {
       >
         <div className="font-display text-4xl font-bold neon-chips mb-2">{animatedScore}</div>
         <div className="text-[var(--color-text-muted)]">
-          Target: <span className="font-display">{targetScore}</span>
+          {t('common.target')}: <span className="font-display">{targetScore}</span>
         </div>
       </motion.div>
 
@@ -89,18 +90,18 @@ export default function SettlementScreen() {
       >
         {/* Panel (constraints check) */}
         <div className="card-base">
-          <div className="text-xs text-[var(--color-text-muted)] mb-2">Panel</div>
+          <div className="text-xs text-[var(--color-text-muted)] mb-2">{t('settlement.panel')}</div>
           <div className="space-y-1 font-display text-sm">
             <div className="flex justify-between">
-              <span className="text-[var(--color-perf)]">Perf</span>
+              <span className="text-[var(--color-perf)]">{t('settlement.perf')}</span>
               <span>{panel.perf.toFixed(1)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[var(--color-rel)]">Rel</span>
+              <span className="text-[var(--color-rel)]">{t('settlement.rel')}</span>
               <span>{panel.rel.toFixed(1)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[var(--color-cx)]">Cx</span>
+              <span className="text-[var(--color-cx)]">{t('settlement.cx')}</span>
               <span>{panel.cx.toFixed(1)}</span>
             </div>
           </div>
@@ -108,26 +109,26 @@ export default function SettlementScreen() {
 
         {/* Chips breakdown */}
         <div className="card-base">
-          <div className="text-xs text-[var(--color-text-muted)] mb-2">Chips Breakdown</div>
+          <div className="text-xs text-[var(--color-text-muted)] mb-2">{t('settlement.chipsBreakdown')}</div>
           <div className="space-y-1 font-display text-sm">
             <div className="flex justify-between">
-              <span className="text-white">Base</span>
+              <span className="text-white">{t('common.base')}</span>
               <span className="neon-chips">{baseChips}</span>
             </div>
             {patternChips > 0 && (
               <div className="flex justify-between">
-                <span className="text-[var(--color-functional)]">Pattern</span>
+                <span className="text-[var(--color-functional)]">{t('common.patterns')}</span>
                 <span className="text-[var(--color-functional)]">+{patternChips}</span>
               </div>
             )}
             {jokerChips > 0 && (
               <div className="flex justify-between">
-                <span className="neon-gold">Joker</span>
+                <span className="neon-gold">{t('common.jokers')}</span>
                 <span className="neon-gold">+{jokerChips}</span>
               </div>
             )}
             <div className="flex justify-between border-t border-white/10 pt-1 mt-1">
-              <span>Total</span>
+              <span>{t('common.total')}</span>
               <span className="neon-chips font-bold">{chips}</span>
             </div>
           </div>
@@ -135,7 +136,7 @@ export default function SettlementScreen() {
 
         {/* Score Formula */}
         <div className="card-base">
-          <div className="text-xs text-[var(--color-text-muted)] mb-2">Score Formula</div>
+          <div className="text-xs text-[var(--color-text-muted)] mb-2">{t('settlement.scoreFormula')}</div>
           <div className="flex items-center gap-2 font-display">
             <span className="neon-chips text-xl">{chips}</span>
             <span className="text-[var(--color-text-muted)]">x</span>
@@ -148,22 +149,22 @@ export default function SettlementScreen() {
 
         {/* Penalties */}
         <div className="card-base">
-          <div className="text-xs text-[var(--color-text-muted)] mb-2">Penalties</div>
+          <div className="text-xs text-[var(--color-text-muted)] mb-2">{t('settlement.penalties')}</div>
           <div className="space-y-1 font-display text-sm">
             {constraintPenalty > 0 && (
               <div className="flex justify-between">
-                <span className="text-red-400">Constraint</span>
+                <span className="text-red-400">{t('settlement.constraint')}</span>
                 <span className="text-red-400">-{constraintPenalty}</span>
               </div>
             )}
             {bossPenalty > 0 && (
               <div className="flex justify-between">
-                <span className="text-red-400">Boss</span>
+                <span className="text-red-400">{t('settlement.boss')}</span>
                 <span className="text-red-400">-{bossPenalty}</span>
               </div>
             )}
             {constraintPenalty === 0 && bossPenalty === 0 && (
-              <span className="text-[var(--color-functional)]">None</span>
+              <span className="text-[var(--color-functional)]">{t('common.none')}</span>
             )}
           </div>
           {constraintResult.failures.length > 0 && (
@@ -177,7 +178,7 @@ export default function SettlementScreen() {
 
         {/* Capacity */}
         <div className="card-base">
-          <div className="text-xs text-[var(--color-text-muted)] mb-2">Capacity</div>
+          <div className="text-xs text-[var(--color-text-muted)] mb-2">{t('settlement.capacity')}</div>
           <div className="font-display text-sm">
             <span className={capacityUsed > capacityBudget ? 'text-red-400' : ''}>
               {capacityUsed}
@@ -185,13 +186,13 @@ export default function SettlementScreen() {
             <span className="text-[var(--color-text-muted)]"> / {capacityBudget}</span>
           </div>
           <div className="text-xs text-[var(--color-text-muted)] mt-1">
-            {deployedComponents.length} components deployed
+            {deployedComponents.length} {t('settlement.componentsDeployed')}
           </div>
         </div>
 
         {/* Jokers */}
         <div className="card-base">
-          <div className="text-xs text-[var(--color-text-muted)] mb-2">Active Jokers</div>
+          <div className="text-xs text-[var(--color-text-muted)] mb-2">{t('settlement.activeJokers')}</div>
           {activeJokers.length > 0 ? (
             <div className="space-y-1">
               {activeJokers.map(j => (
@@ -202,11 +203,11 @@ export default function SettlementScreen() {
               ))}
             </div>
           ) : (
-            <span className="text-xs text-[var(--color-text-muted)]">None</span>
+            <span className="text-xs text-[var(--color-text-muted)]">{t('common.none')}</span>
           )}
           {jokerGold > 0 && (
             <div className="mt-2 text-xs neon-gold font-display">
-              +{jokerGold} gold earned
+              +{jokerGold} {t('settlement.goldEarned')}
             </div>
           )}
         </div>
@@ -221,7 +222,7 @@ export default function SettlementScreen() {
       >
         {triggeredPatterns.length > 0 && (
           <div className="mb-4">
-            <div className="text-xs text-[var(--color-text-muted)] mb-2">Triggered Patterns</div>
+            <div className="text-xs text-[var(--color-text-muted)] mb-2">{t('settlement.triggeredPatterns')}</div>
             <div className="flex flex-wrap gap-2">
               {triggeredPatterns.map((p, i) => (
                 <motion.div
@@ -230,7 +231,7 @@ export default function SettlementScreen() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.0 + i * 0.1 }}
                 >
-                  <PatternBadge name={`${p.name} (+${p.effects.chips_add} chips, +${p.effects.mult_add} mult)`} />
+                  <PatternBadge name={`${p.name} (+${p.effects.chips_add} ${t('common.chips')}, +${p.effects.mult_add} ${t('common.mult')})`} />
                 </motion.div>
               ))}
             </div>
@@ -239,7 +240,7 @@ export default function SettlementScreen() {
 
         {triggeredSuperPatterns.length > 0 && (
           <div className="mb-4">
-            <div className="text-xs text-[var(--color-text-muted)] mb-2">Super Patterns</div>
+            <div className="text-xs text-[var(--color-text-muted)] mb-2">{t('settlement.superPatterns')}</div>
             <div className="space-y-1">
               {superPatternRewards.map((sr, i) => (
                 <motion.div
@@ -266,7 +267,7 @@ export default function SettlementScreen() {
         onClick={continueAfterSettlement}
         className="px-8 py-3 rounded-xl bg-[var(--color-chips)] text-black font-bold text-lg hover:brightness-110 transition shadow-[var(--glow-chips)]"
       >
-        Continue
+        {t('settlement.continue')}
       </motion.button>
     </div>
   );

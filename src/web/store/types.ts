@@ -1,7 +1,8 @@
-export const MAX_DEPLOY_SLOTS = 5;
+export const BASE_DEPLOY_SLOTS = 5;
 
 export type Screen =
   | 'title'
+  | 'collection'
   | 'blindSelect'
   | 'play'
   | 'settlement'

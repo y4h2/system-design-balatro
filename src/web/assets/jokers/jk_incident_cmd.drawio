@@ -1,0 +1,21 @@
+<mxGraphModel dx="0" dy="0" grid="1" gridSize="8" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" background="#0F172A">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="2" value="Monitor" style="rounded=1;fillColor=#134E3A;strokeColor=#34D399;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="10" y="10" width="70" height="28" as="geometry"/></mxCell>
+<mxCell id="3" value="Alert&lt;br&gt;Fired!" style="rounded=1;fillColor=#5C1D1D;strokeColor=#F87171;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="100" y="10" width="70" height="32" as="geometry"/></mxCell>
+<mxCell id="4" value="PagerDuty" style="rounded=1;fillColor=#4E3B10;strokeColor=#FBBF24;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;fontSize=8;" vertex="1" parent="1"><mxGeometry x="200" y="10" width="70" height="28" as="geometry"/></mxCell>
+<mxCell id="5" value="War Room" style="rounded=1;fillColor=#3B2D6B;strokeColor=#A78BFA;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="100" y="65" width="100" height="30" as="geometry"/></mxCell>
+<mxCell id="6" value="IC" style="rounded=1;fillColor=#5C1D1D;strokeColor=#F87171;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;fontSize=9;" vertex="1" parent="1"><mxGeometry x="40" y="115" width="60" height="25" as="geometry"/></mxCell>
+<mxCell id="7" value="Scribe" style="rounded=1;fillColor=#1E3A5F;strokeColor=#60A5FA;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;fontSize=9;" vertex="1" parent="1"><mxGeometry x="120" y="115" width="60" height="25" as="geometry"/></mxCell>
+<mxCell id="8" value="Comms" style="rounded=1;fillColor=#0E3D4A;strokeColor=#22D3EE;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;fontSize=9;" vertex="1" parent="1"><mxGeometry x="200" y="115" width="60" height="25" as="geometry"/></mxCell>
+<mxCell id="9" value="Postmortem" style="rounded=1;fillColor=#4E3B10;strokeColor=#FBBF24;fontColor=#F1F5F9;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;fontSize=9;" vertex="1" parent="1"><mxGeometry x="100" y="165" width="100" height="25" as="geometry"/></mxCell>
+<mxCell id="10" value="threshold" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F87171;fontColor=#94A3B8;fontSize=8;endArrow=block;endFill=1;" edge="1" parent="1" source="2" target="3"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;fontColor=#94A3B8;fontSize=8;endArrow=block;endFill=1;" edge="1" parent="1" source="3" target="4"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="12" value="page" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;fontColor=#94A3B8;fontSize=8;endArrow=block;endFill=1;" edge="1" parent="1" source="4" target="5"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;fontColor=#94A3B8;fontSize=8;endArrow=block;endFill=1;" edge="1" parent="1" source="5" target="6"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;fontColor=#94A3B8;fontSize=8;endArrow=block;endFill=1;" edge="1" parent="1" source="5" target="7"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;fontColor=#94A3B8;fontSize=8;endArrow=block;endFill=1;" edge="1" parent="1" source="5" target="8"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="16" value="resolve" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#34D399;fontColor=#94A3B8;fontSize=8;endArrow=block;endFill=1;" edge="1" parent="1" source="6" target="9"><mxGeometry relative="1" as="geometry"/></mxCell>
+  </root>
+</mxGraphModel>

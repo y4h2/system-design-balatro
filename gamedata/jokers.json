@@ -88,5 +88,95 @@
     "condition": { "require_all_tags": [], "require_any_tags": [], "special": "component_count_lte_3" },
     "effect": { "type": "mult", "value": 1.5 },
     "shop_cost": 6
+  },
+  {
+    "id": "jk_rubber_duck",
+    "name": "橡皮鸭",
+    "desc": "每张含 monitor 的组件 +3 chips",
+    "rarity": "common",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": null },
+    "effect": { "type": "chips", "value": 3, "per_tag": "monitor" },
+    "shop_cost": 5
+  },
+  {
+    "id": "jk_legacy_code",
+    "name": "遗留代码",
+    "desc": "全部不同 domain 时 ×1.4",
+    "rarity": "rare",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": "all_different_domains" },
+    "effect": { "type": "mult", "value": 1.4 },
+    "shop_cost": 7
+  },
+  {
+    "id": "jk_microservice_mania",
+    "name": "微服务狂热",
+    "desc": "4+ 组件部署时 ×1.3",
+    "rarity": "uncommon",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": "component_count_gte_4" },
+    "effect": { "type": "mult", "value": 1.3 },
+    "shop_cost": 6
+  },
+  {
+    "id": "jk_cache_hit",
+    "name": "缓存命中",
+    "desc": "每张含 cache 的组件 +4 chips",
+    "rarity": "uncommon",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": null },
+    "effect": { "type": "chips", "value": 4, "per_tag": "cache" },
+    "shop_cost": 6
+  },
+  {
+    "id": "jk_incident_cmd",
+    "name": "事故指挥官",
+    "desc": "含 security + ha 时 ×1.4",
+    "rarity": "rare",
+    "condition": { "require_all_tags": ["security", "ha"], "require_any_tags": [], "special": null },
+    "effect": { "type": "mult", "value": 1.4 },
+    "shop_cost": 8
+  },
+  {
+    "id": "jk_open_source",
+    "name": "开源贡献者",
+    "desc": "每阶段 +3 gold",
+    "rarity": "common",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": null },
+    "effect": { "type": "gold", "value": 3, "per": "phase" },
+    "shop_cost": 4
+  },
+  {
+    "id": "jk_10x_dev",
+    "name": "10x 工程师",
+    "desc": "始终 ×1.2",
+    "rarity": "rare",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": null },
+    "effect": { "type": "mult", "value": 1.2 },
+    "shop_cost": 9
+  },
+  {
+    "id": "jk_over_engineer",
+    "name": "过度设计",
+    "desc": "容量超预算时 +10 chips",
+    "rarity": "uncommon",
+    "condition": { "require_all_tags": [], "require_any_tags": [], "special": "capacity_over_budget" },
+    "effect": { "type": "chips", "value": 10 },
+    "shop_cost": 5
+  },
+  {
+    "id": "jk_devops_guru",
+    "name": "DevOps 大师",
+    "desc": "含 monitor 时每张 deploy +3 chips",
+    "rarity": "uncommon",
+    "condition": { "require_all_tags": [], "require_any_tags": ["monitor"], "special": null },
+    "effect": { "type": "chips", "value": 3, "per_tag": "deploy" },
+    "shop_cost": 6
+  },
+  {
+    "id": "jk_chaos_lover",
+    "name": "混沌爱好者",
+    "desc": "含 ha + deploy 时 ×1.8",
+    "rarity": "rare",
+    "condition": { "require_all_tags": ["ha", "deploy"], "require_any_tags": [], "special": null },
+    "effect": { "type": "mult", "value": 1.8 },
+    "shop_cost": 8
   }
 ]
