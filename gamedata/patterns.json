@@ -6,6 +6,7 @@
     "requires_all_tags": [],
     "requires_any_tags": [],
     "requires_domain": null,
+    "route": "free",
     "effects": { "mult_add": 1, "chips_add": 5 }
   },
   {
@@ -15,6 +16,7 @@
     "requires_all_tags": [],
     "requires_any_tags": [],
     "requires_domain": null,
+    "route": "free",
     "effects": { "mult_add": 2, "chips_add": 8 }
   },
   {
@@ -24,8 +26,10 @@
     "requires_all_tags": [],
     "requires_any_tags": [],
     "requires_domain": null,
+    "route": "free",
     "effects": { "mult_add": 3, "chips_add": 10 }
   },
+
   {
     "id": "p_read_path",
     "name": "读优化路径",
@@ -33,8 +37,30 @@
     "requires_all_tags": ["cache", "db"],
     "requires_any_tags": [],
     "requires_domain": null,
+    "route": "A",
+    "effects": { "mult_add": 3, "chips_add": 10 }
+  },
+  {
+    "id": "p_edge_accel",
+    "name": "边缘加速",
+    "desc": "edge + cache 边缘加速",
+    "requires_all_tags": ["edge", "cache"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "route": "A",
+    "effects": { "mult_add": 3, "chips_add": 10 }
+  },
+  {
+    "id": "p_hot_protect",
+    "name": "热点保护",
+    "desc": "cache + gateway 热点流量保护",
+    "requires_all_tags": ["cache", "gateway"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "route": "A",
     "effects": { "mult_add": 2, "chips_add": 8 }
   },
+
   {
     "id": "p_write_pipeline",
     "name": "写入管道",
@@ -42,8 +68,30 @@
     "requires_all_tags": ["queue", "db"],
     "requires_any_tags": [],
     "requires_domain": null,
+    "route": "B",
     "effects": { "mult_add": 2, "chips_add": 8 }
   },
+  {
+    "id": "p_event_driven",
+    "name": "事件驱动",
+    "desc": "queue + async + compute 事件驱动架构",
+    "requires_all_tags": ["queue", "async", "compute"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "route": "B",
+    "effects": { "mult_add": 3, "chips_add": 10 }
+  },
+  {
+    "id": "p_peak_shaving",
+    "name": "削峰填谷",
+    "desc": "queue + ha 削峰填谷",
+    "requires_all_tags": ["queue", "ha"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "route": "B",
+    "effects": { "mult_add": 3, "chips_add": 8 }
+  },
+
   {
     "id": "p_observability",
     "name": "可观测闭环",
@@ -51,6 +99,17 @@
     "requires_all_tags": ["monitor"],
     "requires_any_tags": ["search", "deploy"],
     "requires_domain": null,
+    "route": "C",
+    "effects": { "mult_add": 2, "chips_add": 8 }
+  },
+  {
+    "id": "p_zero_downtime",
+    "name": "零停机",
+    "desc": "ha + deploy + monitor 零停机部署",
+    "requires_all_tags": ["ha", "deploy", "monitor"],
+    "requires_any_tags": [],
+    "requires_domain": null,
+    "route": "C",
     "effects": { "mult_add": 3, "chips_add": 10 }
   },
   {
@@ -60,35 +119,10 @@
     "requires_all_tags": ["ha", "replication"],
     "requires_any_tags": [],
     "requires_domain": null,
+    "route": "C",
     "effects": { "mult_add": 3, "chips_add": 10 }
   },
-  {
-    "id": "p_event_driven",
-    "name": "事件驱动",
-    "desc": "queue + async + compute 事件驱动架构",
-    "requires_all_tags": ["queue", "async", "compute"],
-    "requires_any_tags": [],
-    "requires_domain": null,
-    "effects": { "mult_add": 3, "chips_add": 10 }
-  },
-  {
-    "id": "p_fortress",
-    "name": "堡垒",
-    "desc": "security + gateway 构建安全堡垒",
-    "requires_all_tags": ["security", "gateway"],
-    "requires_any_tags": [],
-    "requires_domain": null,
-    "effects": { "mult_add": 2, "chips_add": 6 }
-  },
-  {
-    "id": "p_edge_accel",
-    "name": "边缘加速",
-    "desc": "edge + cache 边缘加速",
-    "requires_all_tags": ["edge", "cache"],
-    "requires_any_tags": [],
-    "requires_domain": null,
-    "effects": { "mult_add": 2, "chips_add": 6 }
-  },
+
   {
     "id": "p_cqrs",
     "name": "CQRS",
@@ -96,25 +130,8 @@
     "requires_all_tags": ["db", "queue", "cache"],
     "requires_any_tags": [],
     "requires_domain": null,
-    "effects": { "mult_add": 5, "chips_add": 15 }
-  },
-  {
-    "id": "p_zero_downtime",
-    "name": "零停机",
-    "desc": "ha + deploy + monitor 零停机部署",
-    "requires_all_tags": ["ha", "deploy", "monitor"],
-    "requires_any_tags": [],
-    "requires_domain": null,
-    "effects": { "mult_add": 5, "chips_add": 15 }
-  },
-  {
-    "id": "p_full_stack",
-    "name": "全栈",
-    "desc": "同时触发 3+ 个 Tier 2 牌型",
-    "requires_all_tags": [],
-    "requires_any_tags": [],
-    "requires_domain": null,
-    "effects": { "mult_add": 8, "chips_add": 20 }
+    "route": "free",
+    "effects": { "mult_add": 4, "chips_add": 12 }
   },
 
   {
@@ -125,6 +142,7 @@
     "requires_any_tags": [],
     "requires_domain": null,
     "platform": "aws",
+    "route": "free",
     "effects": { "mult_add": 2, "chips_add": 8 }
   },
   {
@@ -135,6 +153,7 @@
     "requires_any_tags": [],
     "requires_domain": { "domain": "data", "count": 3 },
     "platform": "gcp",
+    "route": "free",
     "effects": { "mult_add": 2, "chips_add": 6 }
   },
   {
@@ -145,6 +164,7 @@
     "requires_any_tags": [],
     "requires_domain": null,
     "platform": "azure",
+    "route": "free",
     "effects": { "mult_add": 3, "chips_add": 6 }
   },
   {
@@ -155,6 +175,7 @@
     "requires_any_tags": [],
     "requires_domain": null,
     "platform": "selfhosted",
+    "route": "free",
     "effects": { "mult_add": 2, "chips_add": 10 }
   }
 ]

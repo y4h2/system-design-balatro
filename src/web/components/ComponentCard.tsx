@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import type { Component } from '../../schemas/index.js';
 import { t } from '../i18n';
-import { cardIcons, domainColors } from '../icons/cardIcons';
+import { cardIcons, domainColors, platformIcons, platformAccents, getCardIconUrl } from '../icons/cardIcons';
 import CardIcon from './CardIcon';
 import DomainSuit from './DomainSuit';
 
@@ -47,7 +47,7 @@ export default function ComponentCard({ component, selected, onClick, size = 'md
         </div>
       )}
 
-      {/* ─── Top row: domain suit + domain label ─── */}
+      {/* ─── Top row: domain suit + domain label + platform icon ─── */}
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
           <DomainSuit domain={component.domain} size={isSmall ? 12 : 16} />
@@ -58,6 +58,19 @@ export default function ComponentCard({ component, selected, onClick, size = 'md
             {domainLabel}
           </span>
         </div>
+        {component.platform !== 'generic' && platformIcons[component.platform] && (() => {
+          const iconId = platformIcons[component.platform];
+          const accent = platformAccents[component.platform];
+          const needsColor = iconId.startsWith('simple-icons:') || iconId.startsWith('lucide:');
+          return (
+            <img
+              src={getCardIconUrl(iconId, isSmall ? 14 : 18, needsColor ? accent : undefined)}
+              alt={component.platform}
+              className={isSmall ? 'w-3.5 h-3.5' : 'w-[18px] h-[18px]'}
+              style={{ filter: `drop-shadow(0 0 3px ${accent ?? '#888'})` }}
+            />
+          );
+        })()}
       </div>
 
       {/* ─── Center: brand icon ─── */}
@@ -85,8 +98,11 @@ export default function ComponentCard({ component, selected, onClick, size = 'md
         style={{ minHeight: isSmall ? 28 : 32, maxHeight: isSmall ? 28 : 32 }}
       >
         {component.tags.slice(0, isSmall ? 2 : 4).map(tag => (
-          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-[var(--color-text-muted)]">
-            {tag}
+          <span key={tag} className={tag === 'wildcard'
+            ? 'text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 font-bold'
+            : 'text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-[var(--color-text-muted)]'
+          }>
+            {tag === 'wildcard' ? '\u2605 wildcard' : tag}
           </span>
         ))}
         {component.tags.length > (isSmall ? 2 : 4) && (

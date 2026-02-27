@@ -89,16 +89,36 @@ export const cardIcons: Record<string, string> = {
   cmp_encryption: 'lucide:lock',
   cmp_argocd: 'devicon:argocd',
   cmp_terraform: 'devicon:terraform',
+  cmp_rpi_cluster: 'simple-icons:raspberrypi',
+  cmp_lxc: 'simple-icons:linux',
+};
+
+/** Platform-specific icons for Pattern badges */
+export const platformIcons: Record<string, string> = {
+  aws: 'simple-icons:amazonaws',
+  gcp: 'logos:google-cloud',
+  azure: 'logos:microsoft-azure',
+  selfhosted: 'lucide:wrench',
+};
+
+/** Platform accent colors (matching platforms.json) */
+export const platformAccents: Record<string, string> = {
+  aws: '#FF9900',
+  gcp: '#4285F4',
+  azure: '#0078D4',
+  selfhosted: '#6B7280',
 };
 
 /**
  * Build an Iconify REST API URL for an icon SVG.
  * Format: https://api.iconify.design/{prefix}/{name}.svg?height={size}
  */
-export function getCardIconUrl(iconId: string, size = 48): string {
+export function getCardIconUrl(iconId: string, size = 48, color?: string): string {
   const lastColon = iconId.lastIndexOf(':');
   if (lastColon === -1) return '';
   const prefix = iconId.slice(0, lastColon);
   const name = iconId.slice(lastColon + 1);
-  return `https://api.iconify.design/${prefix}/${name}.svg?height=${size}`;
+  let url = `https://api.iconify.design/${prefix}/${name}.svg?height=${size}`;
+  if (color) url += `&color=${encodeURIComponent(color)}`;
+  return url;
 }

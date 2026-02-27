@@ -115,6 +115,15 @@ html, body {
   box-shadow: var(--glow-pattern);
 }
 
+/* Animated pattern glow during play animation */
+.pattern-anim-glow {
+  animation: patternPulse 0.8s ease-in-out infinite alternate;
+}
+@keyframes patternPulse {
+  from { filter: brightness(1) drop-shadow(0 0 4px var(--color-functional)); }
+  to   { filter: brightness(1.3) drop-shadow(0 0 12px var(--color-functional)); }
+}
+
 /* Focus states */
 .card-base:focus-visible {
   outline: 2px solid var(--color-chips);

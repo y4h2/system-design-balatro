@@ -10,7 +10,7 @@
         "blind": "small",
         "subtitle": "MVP - 先把短链跳转跑通",
         "capacity_budget": 110,
-        "target_score": 30,
+        "target_score": 75,
         "constraints": { "min_perf": 3, "constraint_penalty": 10 },
         "skippable": true,
         "skip_reward": { "type": "tarot_pick", "pick": 2, "from": 4 }
@@ -19,7 +19,7 @@
         "blind": "big",
         "subtitle": "Beta - 日活 10 万，开始卖广告",
         "capacity_budget": 90,
-        "target_score": 60,
+        "target_score": 150,
         "constraints": { "min_perf": 4, "min_rel": 3, "constraint_penalty": 15 },
         "skippable": true,
         "skip_reward": { "type": "joker_direct_pick", "pick": 1, "from": "full_pool" }
@@ -28,7 +28,7 @@
         "blind": "boss",
         "subtitle": "生产 - 热点营销活动，流量 10x",
         "capacity_budget": 70,
-        "target_score": 100,
+        "target_score": 250,
         "constraints": { "min_perf": 5, "min_rel": 4, "min_domains": 3, "constraint_penalty": 20 },
         "boss_rule": "cache_disabled",
         "skippable": false
@@ -46,7 +46,7 @@
         "blind": "small",
         "subtitle": "MVP - 先让消息发出去",
         "capacity_budget": 120,
-        "target_score": 30,
+        "target_score": 75,
         "constraints": { "min_perf": 3, "min_rel": 2, "constraint_penalty": 10 },
         "skippable": true,
         "skip_reward": { "type": "tarot_pick", "pick": 2, "from": 4 }
@@ -55,7 +55,7 @@
         "blind": "big",
         "subtitle": "Beta - 用户开始付费了",
         "capacity_budget": 100,
-        "target_score": 65,
+        "target_score": 165,
         "constraints": { "min_perf": 4, "min_rel": 4, "min_domains": 2, "constraint_penalty": 15 },
         "skippable": true,
         "skip_reward": { "type": "joker_direct_pick", "pick": 1, "from": "full_pool" }
@@ -64,7 +64,7 @@
         "blind": "boss",
         "subtitle": "生产压测 - 百万用户大促",
         "capacity_budget": 80,
-        "target_score": 110,
+        "target_score": 275,
         "constraints": { "min_perf": 5, "min_rel": 5, "min_domains": 3, "required_tags": ["security"], "constraint_penalty": 25 },
         "boss_rule": "blind_review",
         "skippable": false
@@ -82,7 +82,7 @@
         "blind": "small",
         "subtitle": "MVP - 能下单能付款",
         "capacity_budget": 120,
-        "target_score": 30,
+        "target_score": 75,
         "constraints": { "min_rel": 3, "constraint_penalty": 10 },
         "skippable": true,
         "skip_reward": { "type": "tarot_pick", "pick": 2, "from": 4 }
@@ -91,7 +91,7 @@
         "blind": "big",
         "subtitle": "Beta - 接入支付渠道，合规审查",
         "capacity_budget": 95,
-        "target_score": 65,
+        "target_score": 165,
         "constraints": { "min_rel": 4, "required_tags": ["security"], "constraint_penalty": 15 },
         "skippable": true,
         "skip_reward": { "type": "joker_direct_pick", "pick": 1, "from": "full_pool" }
@@ -100,7 +100,7 @@
         "blind": "boss",
         "subtitle": "生产 - 双十一大促 + 金融审计",
         "capacity_budget": 75,
-        "target_score": 110,
+        "target_score": 275,
         "constraints": { "min_rel": 5, "min_domains": 3, "required_tags": ["security", "monitor"], "constraint_penalty": 25 },
         "boss_rule": "tech_debt_explosion",
         "skippable": false

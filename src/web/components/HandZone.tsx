@@ -1,4 +1,5 @@
 import { useDroppable } from '@dnd-kit/core';
+import { motion } from 'framer-motion';
 import type { Component } from '../../schemas/index.js';
 import DraggableCard from './DraggableCard';
 import { t } from '../i18n';
@@ -7,6 +8,8 @@ interface HandZoneProps {
   cards: Component[];
   selectedIds: string[];
   onToggleSelect: (componentId: string) => void;
+  hideIds?: Set<string>;
+  enteringIds?: Set<string>;
 }
 
 const CARD_W = 160;
@@ -15,9 +18,10 @@ const MIN_OFFSET = 60;
 const ARC_RADIUS = 1800; // larger = flatter arc
 const MAX_ARC_ANGLE = 20; // max spread angle in degrees (total)
 
-export default function HandZone({ cards, selectedIds, onToggleSelect }: HandZoneProps) {
+export default function HandZone({ cards, selectedIds, onToggleSelect, hideIds, enteringIds }: HandZoneProps) {
   const { setNodeRef, isOver } = useDroppable({ id: 'hand-zone' });
-  const count = cards.length;
+  const visibleCards = hideIds ? cards.filter(c => !hideIds.has(c.id)) : cards;
+  const count = visibleCards.length;
 
   const targetWidth = 900;
   const offset = count <= 1
@@ -50,12 +54,50 @@ export default function HandZone({ cards, selectedIds, onToggleSelect }: HandZon
       </div>
       <div className="flex justify-center">
         <div className="relative" style={{ width: totalWidth, height: CARD_H + 60 }}>
-          {cards.map((c, i) => {
+          {visibleCards.map((c, i) => {
             const isSelected = selectedIds.includes(c.id);
             const baseZ = isSelected ? 100 + i : i;
             const { rotation, arcY } = getArc(i);
             const selectedLift = isSelected ? -30 : 0;
             const topBase = 30 + arcY + selectedLift;
+            const isEntering = enteringIds?.has(c.id);
+
+            if (isEntering) {
+              // Track enter order for stagger
+              const enterIdx = visibleCards.filter((vc, vi) => vi <= i && enteringIds!.has(vc.id)).length - 1;
+              return (
+                <motion.div
+                  key={c.id}
+                  className="absolute origin-bottom"
+                  initial={{ x: 200, y: 80, opacity: 0, scale: 0.7 }}
+                  animate={{
+                    x: 0,
+                    y: 0,
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 150,
+                    damping: 18,
+                    delay: enterIdx * 0.1,
+                  }}
+                  style={{
+                    left: i * offset,
+                    top: topBase,
+                    zIndex: baseZ,
+                    rotate: `${rotation}deg`,
+                  }}
+                >
+                  <DraggableCard
+                    component={c}
+                    source="hand"
+                    selected={isSelected}
+                    onClick={() => onToggleSelect(c.id)}
+                  />
+                </motion.div>
+              );
+            }
 
             return (
               <div

@@ -2,9 +2,9 @@ import { create } from 'zustand';
 import { loadGameDataWeb, type GameData } from '../../data/loader-web.js';
 import { createGameState, type GameState } from '../../engine/state.js';
 import { autoDeal } from '../../engine/draft.js';
-import { runPhase, type PhaseSettlement } from '../../engine/phase-runner.js';
+import { runPhase, runHand, settlePhase, type PhaseSettlement, type MultiHandSettlement, type HandResult } from '../../engine/phase-runner.js';
 import { validateDeployment } from '../../engine/deploy.js';
-import { dealHand, discardAndDraw, type HandState } from '../../engine/hand.js';
+import { dealHand, discardAndDraw, playFromHand, type HandState } from '../../engine/hand.js';
 import {
   generateShopInventory,
   drawPackTarots,
@@ -19,14 +19,14 @@ import {
 } from '../../engine/shop.js';
 import { PACK_CATALOG, type PackType } from '../components/TarotPack.js';
 import { applySchoolFreeComponents, applyVibeCodingStartBonuses, getJokerHandSizeBonus, getJokerDiscardBonus } from '../../engine/joker-specials.js';
-import { detectPatterns } from '../../engine/patterns.js';
+import { detectPatterns, resolveRouteConflict } from '../../engine/patterns.js';
 import { computePanel, computeChips, computeMult, computeFinalScore, type Panel } from '../../engine/scoring.js';
 import { computeJokerChipBonus, computeJokerMultAdd, getJokerMultipliers, computeJokerGold } from '../../engine/joker-specials.js';
 import { validateConstraints } from '../../engine/constraints.js';
 import { applyTarot } from '../../engine/tarot.js';
 import { filterComponentsByPlatform, filterPatternsByPlatform, getPlatformChipBonus, applyAwsMultiRegion, applySelfhostedCxPenalty } from '../../engine/platform.js';
 import type { Component, Joker, Tarot, School, Phase, PlatformId } from '../../schemas/index.js';
-import { BASE_DEPLOY_SLOTS, type Screen } from './types.js';
+import { BASE_DEPLOY_SLOTS, BASE_HANDS, type Screen } from './types.js';
 
 function getBaseline(school: School): Panel {
   const ov = (school.modifiers.baseline_overrides ?? {}) as Record<string, number>;
@@ -44,7 +44,7 @@ interface GameStore {
   selectedForDeploy: string[];
   selectedForDiscard: string[];
   selectedInHand: string[];
-  patternPreview: { name: string; desc: string }[];
+  patternPreview: { name: string; desc: string; platform?: string }[];
   scorePreview: {
     panel: Panel;
     baseChips: number;
@@ -60,6 +60,11 @@ interface GameStore {
   } | null;
   settlement: PhaseSettlement | null;
 
+  // ── Multi-hand ──
+  handResults: HandResult[];
+  lastHandResult: HandResult | null;
+  multiHandSettlement: MultiHandSettlement | null;
+
   // ── Shop ──
   shopInventory: ShopInventory | null;
   openedPack: { pack: PackType; tarots: Tarot[] } | null;
@@ -73,6 +78,7 @@ interface GameStore {
   toggleDeploy(componentId: string): void;
   toggleDiscard(componentId: string): void;
   toggleHandSelect(componentId: string): void;
+  playHand(): void;
   deploySelected(): void;
   executeDiscard(): void;
   updatePreview(): void;
@@ -80,6 +86,7 @@ interface GameStore {
   applyTarotCard(tarotIndex: number, targetComponentId: string, newDomain?: string): void;
 
   continueAfterSettlement(): void;
+  continueAfterHandResult(): void;
 
   openShop(): void;
   shopBuyComponent(component: Component): void;
@@ -105,6 +112,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   patternPreview: [],
   scorePreview: null,
   settlement: null,
+  handResults: [],
+  lastHandResult: null,
+  multiHandSettlement: null,
   shopInventory: null,
   openedPack: null,
 
@@ -161,12 +171,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { gameState } = get();
     if (!gameState) return;
 
-    // Dynamic hand size/discards from joker + school bonuses
+    // Dynamic hand size/discards/hands from joker + school bonuses
     const handSizeBonus = getJokerHandSizeBonus(gameState.jokerSlots);
     const discardBonus = getJokerDiscardBonus(gameState.jokerSlots);
     const schoolHandBonus = gameState.school.modifiers.hand_size_bonus ?? 0;
     const schoolDiscardBonus = gameState.school.modifiers.discard_bonus ?? 0;
-    const handState = dealHand(gameState.componentPool, 8 + handSizeBonus + schoolHandBonus, 3 + discardBonus + schoolDiscardBonus);
+    const totalHandSize = 8 + handSizeBonus + schoolHandBonus;
+    const totalDiscards = 3 + discardBonus + schoolDiscardBonus;
+    const totalHands = BASE_HANDS; // Could be modified by school/joker in future
+
+    const handState = dealHand(gameState.componentPool, totalHandSize, totalDiscards, totalHands);
 
     set({
       currentScreen: 'play',
@@ -177,12 +191,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       patternPreview: [],
       scorePreview: null,
       settlement: null,
+      handResults: [],
+      lastHandResult: null,
+      multiHandSettlement: null,
     });
   },
 
   toggleHandSelect(componentId) {
-    const maxSlots = BASE_DEPLOY_SLOTS + (get().gameState?.school.modifiers.deploy_slots_bonus ?? 0);
-    const maxSelect = Math.max(maxSlots, 5);
+    const maxSelect = 5; // Max cards per play/discard
     set(s => {
       const selected = s.selectedInHand.includes(componentId)
         ? s.selectedInHand.filter(id => id !== componentId)
@@ -194,15 +210,137 @@ export const useGameStore = create<GameStore>((set, get) => ({
     setTimeout(() => get().updatePreview(), 0);
   },
 
-  deploySelected() {
-    const maxSlots = BASE_DEPLOY_SLOTS + (get().gameState?.school.modifiers.deploy_slots_bonus ?? 0);
-    set(s => {
-      const toAdd = s.selectedInHand.filter(id => !s.selectedForDeploy.includes(id));
-      const newDeploy = [...s.selectedForDeploy, ...toAdd].slice(0, maxSlots);
-      return { selectedForDeploy: newDeploy, selectedInHand: [] };
+  playHand() {
+    const { handState, selectedInHand, gameState, gameData, handResults } = get();
+    if (!handState || !gameState || selectedInHand.length === 0 || selectedInHand.length > 5) return;
+
+    const handSizeBonus = getJokerHandSizeBonus(gameState.jokerSlots);
+    const schoolHandBonus = gameState.school.modifiers.hand_size_bonus ?? 0;
+    const totalHandSize = 8 + handSizeBonus + schoolHandBonus;
+
+    // Play cards from hand
+    const { newState, played } = playFromHand(handState, selectedInHand, totalHandSize);
+    if (played.length === 0) return;
+
+    // Score this hand
+    const platform = gameState.platform;
+    const platformPatterns = filterPatternsByPlatform(gameData.patterns, platform.id);
+
+    const handResult = runHand({
+      played,
+      jokers: gameState.jokerSlots,
+      patterns: platformPatterns,
+      school: gameState.school,
+      platform,
+      handIndex: handResults.length,
     });
-    // Deploy and immediately run the phase
-    setTimeout(() => get().runCurrentPhase(), 0);
+
+    const newHandResults = [...handResults, handResult];
+
+    // Check if all hands used
+    if (newState.handsRemaining <= 0) {
+      // Settle phase
+      const phase = gameState.scenario.phases[gameState.currentPhaseIndex];
+      const bossRuleId = phase.boss_rule;
+      const bossRule = bossRuleId
+        ? gameData.bossRules.find(br => br.id === bossRuleId || br.id === `boss_${bossRuleId}`)
+        : undefined;
+
+      const multiSettlement = settlePhase({
+        hands: newHandResults,
+        phase,
+        school: gameState.school,
+        platform,
+        baseline: getBaseline(gameState.school),
+        jokers: gameState.jokerSlots,
+        superPatterns: gameData.superPatterns,
+        bossRule,
+      });
+
+      // Record phase result
+      const updatedPhaseResults = [...gameState.phaseResults, {
+        blind: phase.blind,
+        score: multiSettlement.finalScore,
+        targetScore: multiSettlement.targetScore,
+        passed: multiSettlement.passed,
+        skipped: false,
+      }];
+
+      // Gold reward
+      const reward = calculatePhaseReward(multiSettlement.passed, phase.blind);
+      const updatedGold = gameState.gold + reward + multiSettlement.jokerGold;
+
+      // Create legacy settlement for the SettlementScreen (backward compatible)
+      const allPlayed = newHandResults.flatMap(h => h.played);
+      const allPatterns = newHandResults.flatMap(h => h.triggeredPatterns);
+      const allJokers = newHandResults.flatMap(h => h.activeJokers);
+      const uniqueJokers = [...new Map(allJokers.map(j => [j.id, j])).values()];
+
+      const legacySettlement: PhaseSettlement = {
+        deployedComponents: allPlayed,
+        deployedTags: multiSettlement.deployedTags,
+        capacityUsed: multiSettlement.capacityUsed,
+        capacityBudget: multiSettlement.capacityBudget,
+        panel: multiSettlement.panel,
+        triggeredPatterns: allPatterns,
+        triggeredSuperPatterns: [],
+        superPatternRewards: multiSettlement.superPatternRewards,
+        activeJokers: uniqueJokers,
+        baseChips: allPlayed.reduce((s, c) => s + c.base_chips, 0),
+        patternChips: allPatterns.reduce((s, p) => s + p.effects.chips_add, 0),
+        jokerChips: 0,
+        chips: 0,
+        mult: 0,
+        constraintResult: multiSettlement.constraintResult,
+        constraintPenalty: multiSettlement.constraintPenalty,
+        bossPenalty: multiSettlement.bossPenalty,
+        jokerGold: multiSettlement.jokerGold,
+        finalScore: multiSettlement.finalScore,
+        targetScore: multiSettlement.targetScore,
+        passed: multiSettlement.passed,
+        bossEffects: multiSettlement.bossEffects,
+      };
+
+      set({
+        handState: newState,
+        handResults: newHandResults,
+        lastHandResult: handResult,
+        multiHandSettlement: multiSettlement,
+        settlement: legacySettlement,
+        selectedInHand: [],
+        patternPreview: [],
+        scorePreview: null,
+        gameState: {
+          ...gameState,
+          phaseResults: updatedPhaseResults,
+          gold: updatedGold,
+          handResults: newHandResults,
+          allPlayedCards: allPlayed,
+        },
+        currentScreen: 'settlement',
+      });
+    } else {
+      // Continue playing directly (no intermediate popup)
+      set({
+        handState: newState,
+        handResults: newHandResults,
+        lastHandResult: handResult,
+        selectedInHand: [],
+        patternPreview: [],
+        scorePreview: null,
+        currentScreen: 'play',
+      });
+    }
+  },
+
+  continueAfterHandResult() {
+    set({ currentScreen: 'play', lastHandResult: null });
+  },
+
+  // Legacy: deploy all selected and run full phase (single-deploy mode)
+  deploySelected() {
+    // In the new multi-hand system, this calls playHand
+    get().playHand();
   },
 
   toggleDeploy(componentId) {
@@ -242,15 +380,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   updatePreview() {
-    const { gameState, gameData, selectedForDeploy, selectedInHand, handState } = get();
+    const { gameState, gameData, selectedInHand, handState } = get();
     if (!gameState) return;
-    const deployedIds = [...selectedForDeploy, ...selectedInHand];
-    const deployed = handState?.hand.filter(c => deployedIds.includes(c.id)) ?? [];
+    const deployed = handState?.hand.filter(c => selectedInHand.includes(c.id)) ?? [];
     const deployedTags = [...new Set(deployed.flatMap(c => c.tags))];
     const platform = gameState.platform;
     const platformPatterns = filterPatternsByPlatform(gameData.patterns, platform.id);
-    const triggeredPatterns = detectPatterns(deployed, platformPatterns);
-    const patternPreview = triggeredPatterns.map(p => ({ name: p.name, desc: p.desc }));
+    const allTriggered = detectPatterns(deployed, platformPatterns);
+    const { activePatterns: triggeredPatterns } = resolveRouteConflict(allTriggered);
+    const patternPreview = triggeredPatterns.map(p => ({ name: p.name, desc: p.desc, platform: p.platform }));
 
     let scorePreview: GameStore['scorePreview'] = null;
     if (deployed.length > 0) {
@@ -291,14 +429,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Constraints (with platform mechanic: Azure Compliance Shield)
       const constraintResult = validateConstraints(panel, deployed, phase.constraints, platform);
       const penalty = constraintResult.penalty;
-      const budget = phase.capacity_budget + gameState.school.modifiers.capacity_budget_offset;
-      const { penalty: capacityPenalty } = validateDeployment(deployed, budget, gameState.school.modifiers, platform);
-      const totalPenalty = penalty + capacityPenalty;
 
-      const finalScore = computeFinalScore(chips, mult, totalPenalty);
+      const finalScore = computeFinalScore(chips, mult, penalty);
       scorePreview = {
         panel, baseChips, patternChips, jokerChips: jokerChips + platformChips, chips, mult,
-        patternMultAdds, jokerMults, penalty: totalPenalty,
+        patternMultAdds, jokerMults, penalty,
         constraintFailures: constraintResult.failures,
         finalScore,
       };
@@ -307,6 +442,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ patternPreview, scorePreview });
   },
 
+  // Legacy single-deploy phase runner (kept for backward compat)
   runCurrentPhase() {
     const { gameState, gameData, selectedForDeploy } = get();
     if (!gameState) return;
@@ -318,7 +454,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const platform = gameState.platform;
       const platformPatterns = filterPatternsByPlatform(gameData.patterns, platform.id);
 
-      // Look up boss rule
       const bossRuleId = phase.boss_rule;
       const bossRule = bossRuleId
         ? gameData.bossRules.find(br => br.id === bossRuleId || br.id === `boss_${bossRuleId}`)
@@ -336,7 +471,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
         platform,
       });
 
-      // Record result
       const updatedPhaseResults = [...gameState.phaseResults, {
         blind: phase.blind,
         score: settlement.finalScore,
@@ -345,7 +479,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
         skipped: false,
       }];
 
-      // Gold reward + joker gold earnings
       const reward = calculatePhaseReward(settlement.passed, phase.blind);
       const updatedGold = gameState.gold + reward + settlement.jokerGold;
 
@@ -373,7 +506,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (targetIdx === -1) return;
 
     let tarotToApply = tarot;
-    // For change_domain with wildcard, create a concrete version
     if (tarot.effect.type === 'change_domain' && tarot.effect.to_domain === '*' && newDomain) {
       tarotToApply = {
         ...tarot,
@@ -417,7 +549,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { gameState, gameData } = get();
     if (!gameState) return;
     const interest = calculateInterest(gameState.gold);
-    // Filter shop components by platform (only generic + current platform)
     const shopComponents = filterComponentsByPlatform(gameData.components, gameState.platform.id);
     const inventory = generateShopInventory(
       shopComponents,
@@ -471,11 +602,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (gameState.gold < pack.price) return;
     if (gameState.tarotHand.length >= gameState.tarotHandMax) return;
 
-    // Deduct gold
     const updatedGold = gameState.gold - pack.price;
-    // Draw random tarots
     const tarots = drawPackTarots(gameData.tarots, pack.cardCount);
-    // Remove this pack from shop
     const updatedPackIndices = shopInventory.packIndices.filter((_, i) => i !== packIndex);
 
     set({

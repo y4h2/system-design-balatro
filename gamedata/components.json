@@ -1685,5 +1685,43 @@
     "capacity_cost": 8,
     "rarity": "uncommon",
     "platform": "selfhosted"
+  },
+  {
+    "id": "cmp_rpi_cluster",
+    "name": "Raspberry Pi 集群",
+    "desc": "万能单板机集群，什么都能跑一跑",
+    "domain": "compute",
+    "tags": [
+      "compute",
+      "wildcard"
+    ],
+    "base_chips": 2,
+    "delta": {
+      "perf": 0,
+      "rel": 0,
+      "cx": 1
+    },
+    "capacity_cost": 6,
+    "rarity": "uncommon",
+    "platform": "selfhosted"
+  },
+  {
+    "id": "cmp_lxc",
+    "name": "LXC/Incus",
+    "desc": "系统级容器，万物皆可容器化",
+    "domain": "platform",
+    "tags": [
+      "deploy",
+      "wildcard"
+    ],
+    "base_chips": 2,
+    "delta": {
+      "perf": 0,
+      "rel": 0,
+      "cx": 1
+    },
+    "capacity_cost": 5,
+    "rarity": "uncommon",
+    "platform": "selfhosted"
   }
 ]

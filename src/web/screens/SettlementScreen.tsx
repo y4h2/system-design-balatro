@@ -231,7 +231,7 @@ export default function SettlementScreen() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.0 + i * 0.1 }}
                 >
-                  <PatternBadge name={`${p.name} (+${p.effects.chips_add} ${t('common.chips')}, +${p.effects.mult_add} ${t('common.mult')})`} />
+                  <PatternBadge name={`${p.name} (+${p.effects.chips_add} ${t('common.chips')}, +${p.effects.mult_add} ${t('common.mult')})`} platform={p.platform} />
                 </motion.div>
               ))}
             </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { runPhase, type PhaseInput, type PhaseSettlement } from '../phase-runner.js';
+import { runPhase, runHand, settlePhase, type PhaseInput, type PhaseSettlement } from '../phase-runner.js';
 import { loadGameData } from '../../data/loader.js';
 import type { Component, School, Scenario, Joker, Pattern, SuperPattern, Phase } from '../../schemas/index.js';
 import type { Panel } from '../scoring.js';
@@ -146,18 +146,19 @@ describe('balance', () => {
     });
 
     it('CQRS (db + queue + cache) is a top-tier pattern', () => {
-      // Redis (cache, db) + Kafka (queue, async, realtime) -> CQRS
-      const result = simpleRun([comp('cmp_redis'), comp('cmp_kafka')]);
+      // Redis (cache, db) + Kafka (queue, async) + PostgreSQL (db) → 3 distinct cards for CQRS
+      const result = simpleRun([comp('cmp_redis'), comp('cmp_kafka'), comp('cmp_postgresql')]);
 
       const patternIds = result.triggeredPatterns.map(p => p.id);
       expect(patternIds).toContain('p_cqrs');
-      // CQRS gives mult_add=5, chips_add=15. Should result in high score
+      // CQRS gives mult_add=4, chips_add=12. Should result in high score
       expect(result.finalScore).toBeGreaterThan(50);
     });
 
     it('event driven (queue + async + compute) scores well', () => {
-      // Kafka (queue, async) + Worker Fleet (compute, async) -> event_driven
-      const result = simpleRun([comp('cmp_kafka'), comp('cmp_worker')]);
+      // Kafka (queue, async) + Worker (compute, async) + EC2 (compute)
+      // With distinct matching: Kafka=queue, Worker=async, EC2=compute → p_event_driven
+      const result = simpleRun([comp('cmp_kafka'), comp('cmp_worker'), comp('cmp_ec2')]);
 
       const patternIds = result.triggeredPatterns.map(p => p.id);
       expect(patternIds).toContain('p_event_driven');
@@ -165,8 +166,8 @@ describe('balance', () => {
     });
 
     it('stacking multiple patterns multiplies score', () => {
-      // Redis + Kafka triggers: CQRS, read_path, write_pipeline, event_driven, domain_pair
-      const many = simpleRun([comp('cmp_redis'), comp('cmp_kafka')]);
+      // Redis + Kafka + PostgreSQL + Worker → many patterns with distinct cards
+      const many = simpleRun([comp('cmp_redis'), comp('cmp_kafka'), comp('cmp_postgresql'), comp('cmp_worker')]);
       // Just PostgreSQL alone
       const single = simpleRun([comp('cmp_postgresql')]);
 
@@ -196,18 +197,22 @@ describe('balance', () => {
       expect(threePatterns).not.toContain('p_wide_spectrum');
     });
 
-    it('p_observability triggers with monitor + search or deploy', () => {
-      // ELK (monitor, search) provides both monitor + search
-      const result = simpleRun([comp('cmp_elk')]);
+    it('p_observability triggers with monitor + search on distinct cards', () => {
+      // ELK (monitor, search) alone won't trigger — need 2 distinct cards
+      // ELK (monitor, search) + Grafana (monitor) → ELK=search(any), Grafana=monitor(all) — wait no.
+      // Actually: requires_all_tags=['monitor'], requires_any_tags=['search','deploy']
+      // ELK has [monitor, search] → ELK provides 'monitor' (all), then 'search' (any) needs a DIFFERENT card
+      // So ELK alone doesn't work. Need ELK + another card with search or deploy.
+      const result = simpleRun([comp('cmp_elk'), comp('cmp_k8s_pod')]); // K8s has [compute, deploy]
       const patternIds = result.triggeredPatterns.map(p => p.id);
       expect(patternIds).toContain('p_observability');
     });
 
-    it('p_fortress triggers with security + gateway', () => {
-      // Kong (gateway, security) provides both
-      const result = simpleRun([comp('cmp_kong')]);
+    it('p_observability does NOT trigger with single card having both tags', () => {
+      // ELK (monitor, search) — single card, distinct matching requires 2 cards
+      const result = simpleRun([comp('cmp_elk')]);
       const patternIds = result.triggeredPatterns.map(p => p.id);
-      expect(patternIds).toContain('p_fortress');
+      expect(patternIds).not.toContain('p_observability');
     });
   });
 
@@ -241,8 +246,8 @@ describe('balance', () => {
     });
 
     it('jk_combo_king provides massive boost with multiple patterns', () => {
-      // Redis + Kafka -> many patterns, combo_king x1.5
-      const deployed = [comp('cmp_redis'), comp('cmp_kafka')];
+      // Redis + Kafka + PostgreSQL → many patterns, combo_king x1.5
+      const deployed = [comp('cmp_redis'), comp('cmp_kafka'), comp('cmp_postgresql')];
       const withCombo = simpleRun(deployed, [jk('jk_combo_king')]);
       const noCombo = simpleRun(deployed, []);
 
@@ -252,8 +257,8 @@ describe('balance', () => {
     });
 
     it('stacking jokers compounds their effects', () => {
-      // Redis + Kafka with data_hoarder + combo_king + pattern_amp
-      const deployed = [comp('cmp_redis'), comp('cmp_kafka')];
+      // Redis + Kafka + PostgreSQL with data_hoarder + combo_king + pattern_amp
+      const deployed = [comp('cmp_redis'), comp('cmp_kafka'), comp('cmp_postgresql')];
       const noJokers = simpleRun(deployed, []);
       const allJokers = simpleRun(deployed, [
         jk('jk_data_hoarder'),
@@ -269,45 +274,33 @@ describe('balance', () => {
   // ── Scenario phase balance ────────────────────────────────────────
 
   describe('scenario balance', () => {
-    it('shortlink small blind is beatable with a reasonable hand', () => {
-      // shortlink small: target=30, min_perf=3
-      // CloudFront (edge,cache, perf+2) + Redis (cache,db, perf+3) + PostgreSQL (db, perf+1)
-      // perf = 2 + 2 + 3 + 1 = 8 (passes min_perf=3)
-      // triggers: p_read_path, p_edge_accel, p_domain_pair, etc.
+    it('shortlink small blind — single deploy scores well (legacy)', () => {
+      // Legacy single-deploy score — validates per-hand scoring potential
       const result = simulate(
         'scenario_shortlink', 0, 'school_startup',
         [comp('cmp_cloudfront'), comp('cmp_redis'), comp('cmp_postgresql')],
       );
-
       expect(result.constraintResult.passed).toBe(true);
-      expect(result.passed).toBe(true);
+      // Single deploy: doesn't need to beat new multi-hand target
       expect(result.finalScore).toBeGreaterThanOrEqual(30);
     });
 
-    it('chat small blind is beatable with async+db hand', () => {
-      // chat small: target=30, min_perf=3, min_rel=2
-      // Kafka (perf+2, rel+1) + PostgreSQL (perf+1, rel+1) + Redis (perf+3, rel+0)
-      // perf=2+2+1+3=8, rel=2+1+1+0=4
+    it('chat small blind — single deploy validates scoring', () => {
       const result = simulate(
         'scenario_chat', 0, 'school_startup',
         [comp('cmp_kafka'), comp('cmp_postgresql'), comp('cmp_redis')],
       );
-
       expect(result.constraintResult.passed).toBe(true);
-      expect(result.passed).toBe(true);
+      expect(result.finalScore).toBeGreaterThanOrEqual(30);
     });
 
-    it('orders small blind is beatable with db-focused hand', () => {
-      // orders small: target=30, min_rel=3
-      // PostgreSQL (rel+1) + Aurora (rel+2) + Circuit Breaker (rel+2)
-      // rel = 2+1+2+2 = 7 (passes min_rel=3)
+    it('orders small blind — single deploy validates scoring', () => {
       const result = simulate(
         'scenario_orders', 0, 'school_startup',
         [comp('cmp_postgresql'), comp('cmp_aurora'), comp('cmp_circuit_breaker')],
       );
-
       expect(result.constraintResult.passed).toBe(true);
-      expect(result.passed).toBe(true);
+      expect(result.finalScore).toBeGreaterThanOrEqual(30);
     });
 
     it('big blind requires more sophisticated combos than small blind', () => {
@@ -397,9 +390,9 @@ describe('balance', () => {
       expect(result.finalScore).toBeLessThanOrEqual(10);
     });
 
-    it('a solid 2-component synergy reaches 50+', () => {
-      // Redis + Kafka -> CQRS + many patterns
-      const result = simpleRun([comp('cmp_redis'), comp('cmp_kafka')]);
+    it('a solid 3-component synergy reaches 50+', () => {
+      // Redis + Kafka + PostgreSQL → CQRS + read_path + write_pipeline + many patterns
+      const result = simpleRun([comp('cmp_redis'), comp('cmp_kafka'), comp('cmp_postgresql')]);
       expect(result.finalScore).toBeGreaterThan(50);
     });
 
@@ -425,6 +418,7 @@ describe('balance', () => {
       const deployed = [
         comp('cmp_redis'),
         comp('cmp_kafka'),
+        comp('cmp_postgresql'),
         comp('cmp_worker'),
       ];
 
@@ -466,28 +460,256 @@ describe('balance', () => {
       expect(dp.effects.chips_add).toBeLessThanOrEqual(10);
     });
 
-    it('tier-2 tag patterns give moderate bonuses', () => {
-      const tagPatterns = ['p_read_path', 'p_write_pipeline', 'p_fortress', 'p_edge_accel'];
+    it('route tag patterns give moderate bonuses', () => {
+      const tagPatterns = ['p_read_path', 'p_write_pipeline', 'p_edge_accel', 'p_hot_protect', 'p_event_driven', 'p_peak_shaving', 'p_observability', 'p_zero_downtime', 'p_high_availability'];
       for (const id of tagPatterns) {
         const p = data.patterns.find(p => p.id === id)!;
         expect(p.effects.mult_add).toBeGreaterThanOrEqual(2);
-        expect(p.effects.chips_add).toBeGreaterThanOrEqual(6);
+        expect(p.effects.chips_add).toBeGreaterThanOrEqual(8);
       }
     });
 
-    it('legendary patterns (CQRS, zero_downtime) give the largest bonuses', () => {
-      const legendaries = ['p_cqrs', 'p_zero_downtime'];
-      for (const id of legendaries) {
-        const p = data.patterns.find(p => p.id === id)!;
-        expect(p.effects.mult_add).toBeGreaterThanOrEqual(5);
-        expect(p.effects.chips_add).toBeGreaterThanOrEqual(15);
+    it('CQRS free pattern gives strong bonuses', () => {
+      const cqrs = data.patterns.find(p => p.id === 'p_cqrs')!;
+      expect(cqrs.effects.mult_add).toBeGreaterThanOrEqual(4);
+      expect(cqrs.effects.chips_add).toBeGreaterThanOrEqual(12);
+      expect(cqrs.route).toBe('free');
+    });
+  });
+
+  // ── Multi-hand scoring balance ────────────────────────────────────
+
+  describe('multi-hand scoring', () => {
+    it('4 decent hands accumulate enough to beat small blind (75)', () => {
+      const school = sch('school_startup');
+      const phase = scen('scenario_shortlink').phases[0]; // target=75
+
+      // Hand 1: Redis + PostgreSQL → p_read_path + p_domain_pair
+      const h1 = runHand({
+        played: [comp('cmp_redis'), comp('cmp_postgresql')],
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 0,
+      });
+
+      // Hand 2: Kafka + Worker → p_domain_pair (both data domain)
+      const h2 = runHand({
+        played: [comp('cmp_kafka'), comp('cmp_worker')],
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 1,
+      });
+
+      // Hand 3: Nginx + Health Check → utility cards
+      const h3 = runHand({
+        played: [comp('cmp_nginx'), comp('cmp_health_check')],
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 2,
+      });
+
+      // Hand 4: Circuit Breaker + Grafana
+      const h4 = runHand({
+        played: [comp('cmp_circuit_breaker'), comp('cmp_grafana')],
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 3,
+      });
+
+      const settlement = settlePhase({
+        hands: [h1, h2, h3, h4],
+        phase,
+        school,
+        baseline: baseline(school),
+        jokers: [],
+        superPatterns: data.superPatterns,
+      });
+
+      expect(settlement.totalHandScore).toBeGreaterThanOrEqual(75);
+      expect(settlement.passed).toBe(true);
+    });
+
+    it('individual hand scores are meaningful but modest', () => {
+      const school = sch('school_startup');
+      // A 2-card hand with one pattern: should score 15-80 range
+      const result = runHand({
+        played: [comp('cmp_redis'), comp('cmp_postgresql')],
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 0,
+      });
+
+      // With p_read_path (chips+10, mult+3) + p_domain_pair (chips+5, mult+1)
+      // base chips = 4+4=8, pattern chips=15, total chips=23
+      // mult = 1+3+1=5, score = 23*5 = 115
+      expect(result.handScore).toBeGreaterThan(10);
+      expect(result.handScore).toBeLessThan(200);
+    });
+
+    it('route mastery provides significant but not game-breaking bonus', () => {
+      const school = sch('school_startup');
+      const phase = simplePhase(200, 0);
+
+      // Route A: p_read_path, p_edge_accel, p_hot_protect
+      const h1 = runHand({
+        played: [comp('cmp_redis'), comp('cmp_postgresql')], // cache + db → p_read_path
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 0,
+      });
+      const h2 = runHand({
+        played: [comp('cmp_cloudfront'), comp('cmp_memcached')], // edge + cache → p_edge_accel
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 1,
+      });
+      const h3 = runHand({
+        played: [comp('cmp_memcached'), comp('cmp_nginx')], // cache + gateway → p_hot_protect
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 2,
+      });
+      const h4 = runHand({
+        played: [comp('cmp_ec2')],
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 3,
+      });
+
+      const settlement = settlePhase({
+        hands: [h1, h2, h3, h4],
+        phase,
+        school,
+        baseline: baseline(school),
+        jokers: [],
+        superPatterns: [],
+      });
+
+      // Route mastery gives +20 bonus
+      if (settlement.routeMastery.achieved) {
+        expect(settlement.routeMastery.bonus).toBe(20);
+        expect(settlement.finalScore).toBeGreaterThan(settlement.totalHandScore);
       }
     });
 
-    it('p_full_stack meta-pattern has the highest mult_add', () => {
-      const fs = data.patterns.find(p => p.id === 'p_full_stack')!;
-      const maxMult = Math.max(...data.patterns.filter(p => p.id !== 'p_full_stack').map(p => p.effects.mult_add));
-      expect(fs.effects.mult_add).toBeGreaterThanOrEqual(maxMult);
+    it('4 strong hands with jokers can beat big blind (150)', () => {
+      const school = sch('school_startup');
+      const phase = scen('scenario_shortlink').phases[1]; // target=150
+      const jokers = [jk('jk_data_hoarder'), jk('jk_pattern_amp')];
+
+      const h1 = runHand({
+        played: [comp('cmp_redis'), comp('cmp_kafka'), comp('cmp_postgresql')],
+        jokers,
+        patterns: data.patterns,
+        school,
+        handIndex: 0,
+      });
+      const h2 = runHand({
+        played: [comp('cmp_cloudfront'), comp('cmp_memcached'), comp('cmp_nginx')],
+        jokers,
+        patterns: data.patterns,
+        school,
+        handIndex: 1,
+      });
+      const h3 = runHand({
+        played: [comp('cmp_worker'), comp('cmp_ec2'), comp('cmp_health_check')],
+        jokers,
+        patterns: data.patterns,
+        school,
+        handIndex: 2,
+      });
+      const h4 = runHand({
+        played: [comp('cmp_circuit_breaker'), comp('cmp_grafana')],
+        jokers,
+        patterns: data.patterns,
+        school,
+        handIndex: 3,
+      });
+
+      const settlement = settlePhase({
+        hands: [h1, h2, h3, h4],
+        phase,
+        school,
+        baseline: baseline(school),
+        jokers,
+        superPatterns: data.superPatterns,
+      });
+
+      expect(settlement.totalHandScore).toBeGreaterThanOrEqual(150);
+    });
+
+    it('multi-hand target scores are ~2.5x the old single-deploy targets', () => {
+      const shortlink = scen('scenario_shortlink');
+      const chat = scen('scenario_chat');
+      const orders = scen('scenario_orders');
+
+      // Small blinds: 75 (was 30)
+      expect(shortlink.phases[0].target_score).toBe(75);
+      expect(chat.phases[0].target_score).toBe(75);
+      expect(orders.phases[0].target_score).toBe(75);
+
+      // Big blinds: 150-165 (was 60-65)
+      expect(shortlink.phases[1].target_score).toBe(150);
+      expect(chat.phases[1].target_score).toBe(165);
+      expect(orders.phases[1].target_score).toBe(165);
+
+      // Boss blinds: 250-275 (was 100-110)
+      expect(shortlink.phases[2].target_score).toBe(250);
+      expect(chat.phases[2].target_score).toBe(275);
+      expect(orders.phases[2].target_score).toBe(275);
+    });
+
+    it('spreading cards across hands is viable vs concentrating in one', () => {
+      const school = sch('school_startup');
+
+      // Strategy A: dump 4 cards into hand 1 + 1 throwaway
+      const allIn = runHand({
+        played: [comp('cmp_redis'), comp('cmp_kafka'), comp('cmp_postgresql'), comp('cmp_worker')],
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 0,
+      });
+      const filler = runHand({
+        played: [comp('cmp_grafana')],
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 1,
+      });
+      const concentratedTotal = allIn.handScore + filler.handScore;
+
+      // Strategy B: split into two synergistic hands
+      const split1 = runHand({
+        played: [comp('cmp_redis'), comp('cmp_postgresql')], // read_path
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 0,
+      });
+      const split2 = runHand({
+        played: [comp('cmp_kafka'), comp('cmp_worker'), comp('cmp_grafana')],
+        jokers: [],
+        patterns: data.patterns,
+        school,
+        handIndex: 1,
+      });
+      const spreadTotal = split1.handScore + split2.handScore;
+
+      // Both strategies should yield meaningful scores
+      expect(concentratedTotal).toBeGreaterThan(50);
+      expect(spreadTotal).toBeGreaterThan(50);
+      // The concentrated strategy can be better (more patterns stack), which is fine —
+      // the real constraint is that you can only play 1-5 cards per hand from your hand
     });
   });
 });

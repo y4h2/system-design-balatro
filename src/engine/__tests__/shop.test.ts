@@ -71,7 +71,7 @@ describe('pricing', () => {
 // ── Shop inventory generation ──
 
 describe('generateShopInventory', () => {
-  it('returns up to 3 components, 3 jokers, 2 tarots', () => {
+  it('returns up to 3 components, 3 jokers, 2 pack indices', () => {
     const inv = generateShopInventory(
       data.components,
       data.jokers,
@@ -82,7 +82,7 @@ describe('generateShopInventory', () => {
     );
     expect(inv.components.length).toBeLessThanOrEqual(3);
     expect(inv.jokers.length).toBeLessThanOrEqual(3);
-    expect(inv.tarots.length).toBeLessThanOrEqual(2);
+    expect(inv.packIndices.length).toBeLessThanOrEqual(2);
   });
 
   it('excludes already-owned component ids', () => {
@@ -122,11 +122,11 @@ describe('generateShopInventory', () => {
       data.tarots.slice(0, 1),
       [],
       [],
-      5,
+      1,   // only 1 pack type in catalog
     );
     expect(inv.components).toHaveLength(1);
     expect(inv.jokers).toHaveLength(1);
-    expect(inv.tarots).toHaveLength(1);
+    expect(inv.packIndices).toHaveLength(1);
   });
 });
 

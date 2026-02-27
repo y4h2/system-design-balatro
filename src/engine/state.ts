@@ -1,4 +1,5 @@
 import type { Scenario, School, Joker, Tarot, Component, Platform } from '../schemas/index.js';
+import type { HandResult } from './phase-runner.js';
 
 export interface DeployedState {
   components: Component[];
@@ -26,6 +27,9 @@ export interface GameState {
   gold: number;
   phaseResults: PhaseResult[];
   deployed: DeployedState;
+  // Multi-hand state
+  handResults: HandResult[];
+  allPlayedCards: Component[];
 }
 
 export function createGameState(scenario: Scenario, school: School, platform: Platform): GameState {
@@ -42,5 +46,7 @@ export function createGameState(scenario: Scenario, school: School, platform: Pl
     gold: 10,
     phaseResults: [],
     deployed: { components: [], totalCapacity: 0 },
+    handResults: [],
+    allPlayedCards: [],
   };
 }

@@ -225,7 +225,7 @@ export default function CollectionScreen() {
                   <div className="flex flex-wrap gap-1">
                     {testResult.triggered.length > 0 ? (
                       testResult.triggered.map(p => (
-                        <PatternBadge key={p.id} name={p.name} desc={p.desc} />
+                        <PatternBadge key={p.id} name={p.name} desc={p.desc} platform={p.platform} />
                       ))
                     ) : (
                       <span className="text-[11px] text-[var(--color-text-muted)]">{t('play.noneDetected')}</span>
@@ -681,7 +681,7 @@ function PatternsTab({ patterns, superPatterns }: { patterns: Pattern[]; superPa
           {patterns.map(p => (
             <div key={p.id} className="rounded-xl bg-[var(--color-surface)] border border-white/10 p-4">
               <div className="flex items-center gap-2 mb-2">
-                <PatternBadge name={p.name} />
+                <PatternBadge name={p.name} platform={p.platform} />
               </div>
               <p className="text-xs text-[var(--color-text-muted)] mb-3">{p.desc}</p>
               <div className="flex gap-4 text-[11px]">

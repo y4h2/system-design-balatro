@@ -18,6 +18,7 @@ export const PatternSchema = z.object({
   requires_any_tags: z.array(z.string()),
   requires_domain: DomainRequirementSchema.nullable().optional(),
   platform: z.string().optional(),
+  route: z.enum(['A', 'B', 'C', 'free']).default('free'),
   effects: EffectsSchema,
 });
 

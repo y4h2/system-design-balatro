@@ -35,7 +35,7 @@
 | 单局时长 | ~15-20 分钟 |
 | 技术栈 | React 19 + Vite, Zustand, Tailwind CSS v4, Framer Motion |
 
-**核心玩法**：选择一个流派（School）+ 一个平台（Platform）+ 一个场景（Scenario），通过 3 个盲注阶段（Small → Big → Boss），部署技术组件卡牌来凑成架构 Pattern 得分。阶段间访问商店购买 Joker、Tarot 和组件。**通过 2/3 阶段即为胜利。**
+**核心玩法**：选择一个流派（School）+ 一个平台（Platform）+ 一个场景（Scenario），通过 3 个盲注阶段（Small → Big → Boss），每阶段打出多手牌（Balatro 式 Hands 系统），用技术组件卡牌凑成架构 Pattern 得分。阶段间访问商店购买 Joker、Tarot 和组件。**通过 2/3 阶段即为胜利。**
 
 ---
 
@@ -44,13 +44,41 @@
 ```
 TitleScreen（选流派 + 平台 + 场景）
   → BlindSelectScreen（预览 3 个阶段目标）
-    → PlayScreen（抽牌、弃牌、部署组件）
-      → SettlementScreen（得分结算、Pass/Fail）
-        → ShopScreen（购买组件/Joker/Tarot 卡包）
-          → BlindSelectScreen（下一阶段）
-            → …重复…
-              → GameOverScreen（胜负结算）
+    → PlayScreen（发牌 → 多手出牌循环）
+      → HandResultScreen（每手得分展示）
+        → PlayScreen（继续出牌）
+          → SettlementScreen（阶段总结算、Pass/Fail）
+            → ShopScreen（购买组件/Joker/Tarot 卡包）
+              → BlindSelectScreen（下一阶段）
+                → …重复…
+                  → GameOverScreen（胜负结算）
 ```
+
+### Hands 系统（Balatro 式）
+
+每个阶段采用多手出牌制：
+
+```
+BlindSelect → 发牌(deck→hand, 8张)
+  循环直到 hands 用完:
+    → 选卡出牌(1~5张) → 本手计分 → 出过的卡进弃牌堆 → 从 deck 补满手牌
+    或
+    → 选卡弃牌(1~5张) → 弃牌堆 → 从 deck 补满手牌（消耗 1 次 discard）
+→ 最终结算: Σ 各手分数 + 路线精通 - 约束惩罚
+→ 商店
+```
+
+| 项目 | 规则 |
+|------|------|
+| Deck | componentPool（已按 platform 过滤）洗牌 |
+| 手牌上限 | 8 + 流派/Joker 加成 |
+| Hands | 4 次出牌（可被流派/Joker 修改） |
+| Discards | 3 次弃牌（可被流派/Joker 修改） |
+| 每手出牌 | 1~5 张 |
+| 出牌后 | 卡进弃牌堆，从 deck 补满手牌 |
+| 每手计分 | 独立 `chips × mult`（本手卡 + Pattern + Joker + Platform bonus） |
+| 约束/容量 | 所有手结束后累计检查 |
+| 目标分数 | Σ 各手分数 + 路线精通 - 惩罚 ≥ target |
 
 ### 各屏幕说明
 
@@ -58,29 +86,32 @@ TitleScreen（选流派 + 平台 + 场景）
 |------|------|
 | **TitleScreen** | 轮播 6 个流派卡片，选择场景，进入游戏或图鉴 |
 | **BlindSelectScreen** | 展示 3 个阶段卡片（目标分数、容量预算、约束条件、Boss 规则），可跳过非 Boss 阶段换取奖励 |
-| **PlayScreen** | 主战场：左侧得分面板 + 右侧手牌区/部署区/Joker 区/Tarot 区 |
-| **SettlementScreen** | 动画展示得分拆解（基础筹码、牌型加成、Joker 加成、惩罚） |
+| **PlayScreen** | 主战场：左侧得分面板（含 Hands/Discards 计数、累计分数） + 右侧手牌区/Joker 区/Tarot 区 |
+| **HandResultScreen** | 每手出牌后的得分展示：chips/mult 拆解、触发 Pattern、路线冲突丢弃、累计分数 |
+| **SettlementScreen** | 阶段总结算：所有手累计得分 + 路线精通 + Super Pattern - 惩罚 |
 | **ShopScreen** | 购买/出售组件和 Joker，购买 Tarot 卡包（翻书动画） |
 | **GameOverScreen** | 显示 3 阶段战绩，胜/负判定 |
-| **CollectionScreen** | 图鉴：左右分栏，左侧卡牌网格，右侧详情面板（数值 + 典故），底部测试台；浏览所有 90 组件、20 Joker、8 Tarot、10 卡包、17 牌型 |
+| **CollectionScreen** | 图鉴：左右分栏，左侧卡牌网格，右侧详情面板（数值 + 典故），底部测试台 |
 
 ---
 
 ## 3. 核心机制
 
-### 3.1 手牌与弃牌
+### 3.1 手牌与出牌
 
 - 进入 Play 阶段时，组件池洗牌后发 `handSize` 张手牌，剩余为摸牌堆
 - **手牌上限** = 8 + 流派加成 + Joker 加成
-- **弃牌次数** = 3 + 流派加成 + Joker 加成
-- 每次弃牌：选 ≤5 张 → 放入弃牌堆（本阶段不可再抽） → 从摸牌堆补等量牌
-- 弃牌消耗 1 次弃牌机会
+- **出牌次数 (Hands)** = 4 + 流派/Joker 加成
+- **弃牌次数 (Discards)** = 3 + 流派加成 + Joker 加成
+- 每次出牌：选 1~5 张 → 本手独立计分 → 卡进弃牌堆 → 从摸牌堆补满手牌
+- 每次弃牌：选 ≤5 张 → 放入弃牌堆 → 从摸牌堆补等量牌 → 消耗 1 次弃牌机会
+- 所有手出完后进入阶段结算
 
-### 3.2 部署与容量
+### 3.2 容量与约束
 
-- **部署槽** = 5 + 流派加成（范围 4–6）
 - 每个组件有 `capacity_cost`（范围 4–20）
 - 每个阶段有 `capacity_budget`（范围 70–120，受流派 offset 调整）
+- **容量累计检查**：所有手打出的卡累计容量在阶段结算时检查
 - 流派可对特定 tag 的组件打折（如 SRE 流派：[ha, monitor] 七折）
 - **超预算惩罚** = (总容量 - 预算) × 5
 
@@ -132,7 +163,7 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 
 ## 5. 组件卡 (Components)
 
-共 **90 张**（50 通用 + 10 AWS + 10 GCP + 10 Azure + 10 自建），分布在 5 个 Domain。每张卡有：基础筹码 (base_chips)、面板增量 (delta P/R/CX)、容量成本 (capacity_cost)、标签 (tags)、稀有度。
+共 **92 张**（50 通用 + 10 AWS + 10 GCP + 10 Azure + 12 自建），分布在 5 个 Domain。每张卡有：基础筹码 (base_chips)、面板增量 (delta P/R/CX)、容量成本 (capacity_cost)、标签 (tags)、稀有度。
 
 > 每张组件卡有 `platform` 字段：`generic`（通用）、`aws`、`gcp`、`azure` 或 `selfhosted`。每局游戏只包含通用牌 + 所选平台的专属牌。
 
@@ -258,7 +289,7 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 | Application Gateway | network | gateway, security | 3 | +1/+1/0 | 8 | common |
 | Azure Monitor | platform | monitor | 3 | 0/+1/0 | 7 | common |
 
-### 自建专属组件 (10 张)
+### 自建专属组件 (12 张)
 
 | 名称 | Domain | Tags | Chips | P/R/CX | Cap | Rarity |
 |------|--------|------|-------|--------|-----|--------|
@@ -272,6 +303,17 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 | Traefik | network | gateway, deploy | 3 | +1/+1/0 | 7 | common |
 | WireGuard | network | security | 2 | 0/+1/0 | 5 | common |
 | Ansible | platform | deploy | 3 | 0/+1/+1 | 8 | uncommon |
+| Raspberry Pi 集群 | compute | compute, **wildcard** | 2 | 0/0/+1 | 6 | uncommon |
+| LXC/Incus | platform | deploy, **wildcard** | 2 | 0/0/+1 | 5 | uncommon |
+
+#### Wildcard 机制
+
+自建平台的 2 张 wildcard 卡（Raspberry Pi 集群、LXC/Incus）在 Pattern 匹配时可充当**任意一个** tag，体现"自建万能、DIY 灵活"的身份。
+
+- tags 中包含 `"wildcard"` 的卡牌在 `matchTagsDistinct` 匹配时可满足任意 tag 需求
+- 受 distinct-card 约束，每张 wildcard 卡每次匹配只能充当一个 tag
+- Wildcard 不影响 domain 计数、constraint 检查、Joker 条件
+- 代价：base_chips 仅 2（远低于正常卡 3-5），且 CX +1
 
 ---
 
@@ -281,20 +323,20 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 
 ### Joker 激活条件
 
-1. `require_all_tags`：部署卡牌的 tag 集必须**全部包含**这些 tag
-2. `require_any_tags`：部署卡牌的 tag 集必须**至少包含一个**
+1. `require_all_tags`：本手出牌的 tag 集必须**全部包含**这些 tag
+2. `require_any_tags`：本手出牌的 tag 集必须**至少包含一个**
 3. `special`：特殊条件判定（见下表）
 
 ### 特殊条件一览
 
 | Special | 触发条件 |
 |---------|---------|
-| `five_same_domain` | 5+ 张同 Domain 卡部署 |
-| `all_different_domains` | 所有部署卡 Domain 各不相同 |
-| `component_count_lte_3` | 部署 ≤3 张 |
-| `component_count_gte_4` | 部署 ≥4 张 |
-| `capacity_over_budget` | 总容量超预算 |
-| `capacity_under_budget` | 总容量未超预算 |
+| `five_same_domain` | 本手 5 张同 Domain 卡 |
+| `all_different_domains` | 本手所有卡 Domain 各不相同 |
+| `component_count_lte_3` | 本手出牌 ≤3 张 |
+| `component_count_gte_4` | 本手出牌 ≥4 张 |
+| `capacity_over_budget` | 阶段累计容量超预算 |
+| `capacity_under_budget` | 阶段累计容量未超预算 |
 
 ### 全部 20 张 Joker
 
@@ -373,41 +415,66 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 
 ## 8. Pattern 牌型
 
-共 **13 个**，分 3 个 Tier。由部署组件的 tag 集合触发。
+共 **17 个**，采用 **Route 路线系统** + **Distinct-Card Matching**。
 
-### Tier 1 — Domain 牌型（易触发）
+### 8.1 Route 路线系统
+
+每个 Pattern 属于一条路线（A/B/C）或 Free。**同一手中若同时触发多条路线的 Pattern，只有总奖励最高的路线生效，其余路线的 Pattern 被丢弃。** Free Pattern 始终生效。
+
+### 8.2 Distinct-Card Matching
+
+**每个 tag 需求必须由不同的卡牌满足。** 例如 `p_read_path` 需要 [cache, db]，Redis（cache, db）单张卡不能同时提供两个 tag，必须用 Redis 提供 cache、PostgreSQL 提供 db。使用 bitmask 回溯算法实现。
+
+### Route A — 读性能线（核心: `cache`）
+
+| 名称 | ID | 触发条件 | +Chips | +Mult |
+|------|-----|---------|--------|-------|
+| 读优化路径 | `p_read_path` | ALL: [cache, db] | 10 | 3 |
+| 边缘加速 | `p_edge_accel` | ALL: [edge, cache] | 10 | 3 |
+| 热点保护 | `p_hot_protect` | ALL: [cache, gateway] | 8 | 2 |
+
+### Route B — 写可靠线（核心: `queue`）
+
+| 名称 | ID | 触发条件 | +Chips | +Mult |
+|------|-----|---------|--------|-------|
+| 写入管道 | `p_write_pipeline` | ALL: [queue, db] | 8 | 2 |
+| 事件驱动 | `p_event_driven` | ALL: [queue, async, compute] | 10 | 3 |
+| 削峰填谷 | `p_peak_shaving` | ALL: [queue, ha] | 8 | 3 |
+
+### Route C — 稳定运维线（核心: `monitor` + `ha`）
+
+| 名称 | ID | 触发条件 | +Chips | +Mult |
+|------|-----|---------|--------|-------|
+| 可观测闭环 | `p_observability` | ALL: [monitor] + ANY: [search, deploy] | 8 | 2 |
+| 零停机 | `p_zero_downtime` | ALL: [ha, deploy, monitor] | 10 | 3 |
+| 高可用 | `p_high_availability` | ALL: [ha, replication] | 10 | 3 |
+
+### Free Pattern（始终生效，不受路线互斥）
 
 | 名称 | 触发条件 | +Chips | +Mult |
 |------|---------|--------|-------|
 | 领域配对 | 同 domain ≥2 张 | 5 | 1 |
 | 领域三连 | 同 domain ≥3 张 | 10 | 3 |
 | 广谱架构 | 不同 domain ≥4 种 | 8 | 2 |
+| CQRS | ALL: [db, queue, cache]（需 3 张不同卡） | 12 | 4 |
+| 平台专属 | 见 §16.5 | 各异 | 各异 |
 
-### Tier 2 — 主题牌型（中等难度）
+### 8.3 路线精通
 
-| 名称 | 触发条件 | +Chips | +Mult |
-|------|---------|--------|-------|
-| 读优化路径 | ALL: [cache, db] | 8 | 2 |
-| 写入管道 | ALL: [queue, db] | 8 | 2 |
-| 可观测闭环 | ALL: [monitor] + ANY: [search, deploy] | 10 | 3 |
-| 高可用 | ALL: [ha, replication] | 10 | 3 |
-| 事件驱动 | ALL: [queue, async, compute] | 10 | 3 |
-| 堡垒 | ALL: [security, gateway] | 6 | 2 |
-| 边缘加速 | ALL: [edge, cache] | 6 | 2 |
+所有手结束后：同一路线的 3 个 Pattern 全部在不同手中触发 → **+20 bonus**
 
-### Tier 3 — 传说牌型（高难高奖）
+### 8.4 每手 Pattern 判定流程
 
-| 名称 | 触发条件 | +Chips | +Mult |
-|------|---------|--------|-------|
-| CQRS | ALL: [db, queue, cache] | 15 | 5 |
-| 零停机 | ALL: [ha, deploy, monitor] | 15 | 5 |
-| 全栈 | 同时触发 ≥3 个 Tier-2 牌型 | 20 | 8 |
+1. Distinct-card matching 检测所有满足条件的 Pattern
+2. 路线互斥：若同时触发 A 和 B，比较总奖励（Σ chips_add + Σ mult_add），高者生效
+3. Free + 平台 Pattern 始终生效
+4. 本手分数 = chips × mult
 
 ---
 
 ## 9. Super Pattern 超级牌型
 
-在常规牌型之上额外判定的奖励机制，共 **4 个**。
+在常规牌型之上额外判定的奖励机制，共 **4 个**。阶段结算时基于所有手累计触发的 pattern 数量判定。
 
 | 名称 | 触发条件 | 奖励 |
 |------|---------|------|
@@ -424,14 +491,14 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 
 ### 一览表
 
-| 流派 | 口号 | 折扣 Tag | 折扣率 | 预算偏移 | 部署+/- | 手牌+/- | 弃牌+/- | Joker 槽 | 特殊 |
-|------|------|---------|--------|---------|---------|---------|---------|---------|------|
-| **SRE** | 不怕贵，怕挂 | ha, monitor | 0.7 | 0 | 0 | 0 | +1 | 4 | baseline rel=3 |
-| **创业** | 先上线再说 | async, queue | 0.7 | +15 | 0 | +2 | 0 | 4 | — |
-| **极简** | less is more | — | 1.0 | -20 | -1 | -2 | +1 | 5 | baseline 3/3/3 |
-| **合规** | 合规先行 | security, gateway | 0.7 | 0 | +1 | 0 | 0 | 3 | 开局送 Audit Log + Encryption |
-| **性能** | 快就是正义 | cache, edge | 0.6 | 0 | 0 | 0 | 0 | 4 | baseline perf=4, rel=1 |
-| **Vibe Coding** | ship it, vibes only | — | 1.0 | 0 | +1 | +1 | +1 | 5 | Tarot 手牌 3；开局送随机 Joker + Tarot；30% 概率容量七折；20% 概率额外风险 |
+| 流派 | 口号 | 折扣 Tag | 折扣率 | 预算偏移 | 手牌+/- | 弃牌+/- | Joker 槽 | 特殊 |
+|------|------|---------|--------|---------|---------|---------|---------|------|
+| **SRE** | 不怕贵，怕挂 | ha, monitor | 0.7 | 0 | 0 | +1 | 4 | baseline rel=3 |
+| **创业** | 先上线再说 | async, queue | 0.7 | +15 | +2 | 0 | 4 | — |
+| **极简** | less is more | — | 1.0 | -20 | -2 | +1 | 5 | baseline 3/3/3 |
+| **合规** | 合规先行 | security, gateway | 0.7 | 0 | 0 | 0 | 3 | 开局送 Audit Log + Encryption |
+| **性能** | 快就是正义 | cache, edge | 0.6 | 0 | 0 | 0 | 4 | baseline perf=4, rel=1 |
+| **Vibe Coding** | ship it, vibes only | — | 1.0 | 0 | +1 | +1 | 5 | Tarot 手牌 3；开局送随机 Joker + Tarot；30% 概率容量七折；20% 概率额外风险 |
 
 ### 详细说明
 
@@ -439,13 +506,13 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 
 **创业流派**：大手大脚，预算 +15，手牌多 2 张（看得多选择多），适合快速组合。
 
-**极简流派**：少而精，预算 -20、部署槽只有 4、手牌只有 6，但起始面板全 3 且 Joker 槽最多（5 个），适合搭配"极简主义"Joker。
+**极简流派**：少而精，预算 -20、手牌只有 6，但起始面板全 3 且 Joker 槽最多（5 个），适合搭配"极简主义"Joker。
 
-**合规流派**：安全优先，security/gateway 组件七折，多 1 个部署槽（6 个），开局自带 Audit Log 和 Encryption，但 Joker 槽最少（3 个）。
+**合规流派**：安全优先，security/gateway 组件七折，开局自带 Audit Log 和 Encryption，但 Joker 槽最少（3 个）。
 
 **性能流派**：极致性能，cache/edge 组件六折（最大折扣），起始 perf=4 但 rel=1（激进高性能低可靠）。
 
-**Vibe Coding**：全面增强但带随机性，Tarot 手牌 3 张，开局送随机 Joker + Tarot，每次部署 30% 概率容量打七折，但 20% 概率引入额外风险。
+**Vibe Coding**：全面增强但带随机性，Tarot 手牌 3 张，开局送随机 Joker + Tarot，每次出牌 30% 概率容量打七折，但 20% 概率引入额外风险。
 
 ---
 
@@ -459,9 +526,9 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 
 | 阶段 | 副标题 | 预算 | 目标分 | 约束 | Boss Rule |
 |------|--------|------|--------|------|-----------|
-| Small | MVP - 先把短链跳转跑通 | 110 | 30 | P≥3, penalty=10 | — |
-| Big | Beta - 日活10万，卖广告 | 90 | 60 | P≥4, R≥3, penalty=15 | — |
-| Boss | 生产 - 热点营销，流量10x | 70 | 100 | P≥5, R≥4, domains≥3, penalty=20 | **缓存禁用** |
+| Small | MVP - 先把短链跳转跑通 | 110 | 75 | P≥3, penalty=10 | — |
+| Big | Beta - 日活10万，卖广告 | 90 | 150 | P≥4, R≥3, penalty=15 | — |
+| Boss | 生产 - 热点营销，流量10x | 70 | 250 | P≥5, R≥4, domains≥3, penalty=20 | **缓存禁用** |
 
 ### 即时聊天系统
 
@@ -469,9 +536,9 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 
 | 阶段 | 副标题 | 预算 | 目标分 | 约束 | Boss Rule |
 |------|--------|------|--------|------|-----------|
-| Small | MVP - 先让消息发出去 | 120 | 30 | P≥3, R≥2, penalty=10 | — |
-| Big | Beta - 用户开始付费 | 100 | 65 | P≥4, R≥4, domains≥2, penalty=15 | — |
-| Boss | 生产压测 - 百万用户大促 | 80 | 110 | P≥5, R≥5, domains≥3, required=[security], penalty=25 | **盲审** |
+| Small | MVP - 先让消息发出去 | 120 | 75 | P≥3, R≥2, penalty=10 | — |
+| Big | Beta - 用户开始付费 | 100 | 165 | P≥4, R≥4, domains≥2, penalty=15 | — |
+| Boss | 生产压测 - 百万用户大促 | 80 | 275 | P≥5, R≥5, domains≥3, required=[security], penalty=25 | **盲审** |
 
 ### 订单系统
 
@@ -479,9 +546,9 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 
 | 阶段 | 副标题 | 预算 | 目标分 | 约束 | Boss Rule |
 |------|--------|------|--------|------|-----------|
-| Small | MVP - 能下单能付款 | 120 | 30 | R≥3, penalty=10 | — |
-| Big | Beta - 接入支付，合规审查 | 95 | 65 | R≥4, required=[security], penalty=15 | — |
-| Boss | 生产 - 双十一 + 金融审计 | 75 | 110 | R≥5, domains≥3, required=[security, monitor], penalty=25 | **技术债爆发** |
+| Small | MVP - 能下单能付款 | 120 | 75 | R≥3, penalty=10 | — |
+| Big | Beta - 接入支付，合规审查 | 95 | 165 | R≥4, required=[security], penalty=15 | — |
+| Boss | 生产 - 双十一 + 金融审计 | 75 | 275 | R≥5, domains≥3, required=[security, monitor], penalty=25 | **技术债爆发** |
 
 ### 跳过阶段奖励
 
@@ -539,47 +606,57 @@ Small 和 Big 阶段结算后开放商店。
 
 ## 14. 得分公式
 
-### 核心公式
+### 核心公式（多手制）
 
 ```
-最终得分 = round(Chips × Mult - 约束惩罚 - 超预算惩罚 - Boss 惩罚)
+阶段最终得分 = Σ 各手分数 + 路线精通 bonus + Super Pattern bonus - 约束惩罚 - Boss 惩罚
 ```
 
-### Chips 计算
+### 每手计分
 
 ```
-Chips = Σ(组件.base_chips)
+手分数 = round(Chips × Mult)
+
+Chips = Σ(本手卡.base_chips)
       + Σ(触发 Pattern 的 chips_add)
       + Joker chips 加成
-      + Super Pattern chips 加成
-```
+      + Platform chips bonus
 
-### Mult 计算
-
-```
-Mult = (1 + Σ pattern.mult_add + Σ joker_additive_mult + Σ super_pattern_mult)
+Mult = (1 + Σ pattern.mult_add + Σ joker_additive_mult)
      × Π joker_multiplicative_mult
 ```
 
 - **加法部分**：pattern_enhance Joker 的 extra_mult × pattern 数量
 - **乘法部分**：mult 类型 Joker 和 combo_mult 类型 Joker（达标时）
 
+### 阶段结算
+
+```
+totalHandScore = Σ 各手 handScore
+routeMasteryBonus = 20（若达成路线精通）
+superPatternBonus = chips_burst + mult_burst × 10
+finalScore = totalHandScore + routeMasteryBonus + superPatternBonus - constraintPenalty
+```
+
 ### 阶段执行顺序
 
-1. 解析 Boss 规则（如有）
-2. 计算有效容量预算
-3. 验证容量（计算超预算惩罚）
-4. 收集部署 tag 集合
-5. 检测触发 Pattern
-6. 检查 Joker 激活条件
-7. 检查 Super Pattern
-8. 应用 Super Pattern 奖励
-9. 计算面板值（P/R/CX）
-10. 验证约束 → 计算约束惩罚
-11. 计算 Chips
-12. 计算 Mult
-13. 计算 Joker 金币收入
-14. 计算最终得分，判定 Pass/Fail
+**每手循环（runHand）：**
+1. Distinct-card matching 检测 Pattern
+2. 路线冲突解决（互斥）
+3. Joker 激活（基于本手 played tags）
+4. 计算 Chips = base + pattern + joker + platform
+5. 计算 Mult = (1 + patterns + jokers) × multipliers
+6. 本手得分 = chips × mult
+
+**阶段结算（settlePhase）：**
+1. 收集所有手打出的卡 → allPlayed
+2. 计算累计容量（含 platform modifier + boss modifier）
+3. 计算面板值（P/R/CX）+ platform mechanic
+4. 验证约束 → 惩罚
+5. 检查 Super Pattern（基于累计 pattern 数）
+6. 检查路线精通
+7. 最终得分 = Σ handScore + bonus - penalties
+8. 判定 Pass/Fail
 
 ---
 
@@ -762,10 +839,11 @@ Balatro 风格扇形弧排列 — 卡牌重叠，cos 曲线纵向偏移 + 旋转
 - Cosmos DB、Azure SQL、Service Bus、Blob Storage
 - Azure Front Door、Application Gateway、Azure Monitor
 
-#### 自建专属（10张新增）
+#### 自建专属（12张，含 2 张 wildcard）
 - Bare Metal Server、Docker Swarm、Nomad
 - CockroachDB、MinIO、NATS
 - HAProxy、Traefik、WireGuard、Ansible
+- Raspberry Pi 集群 (wildcard)、LXC/Incus (wildcard)
 
 ### 16.5 平台专属 Pattern
 

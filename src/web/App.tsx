@@ -7,12 +7,14 @@ import SettlementScreen from './screens/SettlementScreen';
 import ShopScreen from './screens/ShopScreen';
 import GameOverScreen from './screens/GameOverScreen';
 import CollectionScreen from './screens/CollectionScreen';
+import HandResultScreen from './screens/HandResultScreen';
 
 const screens: Record<string, React.FC> = {
   title: TitleScreen,
   collection: CollectionScreen,
   blindSelect: BlindSelectScreen,
   play: PlayScreen,
+  handResult: HandResultScreen,
   settlement: SettlementScreen,
   shop: ShopScreen,
   gameOver: GameOverScreen,
