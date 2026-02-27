@@ -21,8 +21,7 @@ const zh: Record<string, string> = {
   'domain.compute': '计算',
   'domain.data': '数据',
   'domain.network': '网络',
-  'domain.defense': '防御',
-  'domain.platform': '平台',
+  'domain.infra': '基础设施',
 
   // ── Blinds ──
   'blind.small': '小盲',
@@ -172,7 +171,7 @@ const zh: Record<string, string> = {
   'info.multFormula': '倍率 = (1 + 牌型倍率 + Joker 倍率) x Joker 乘数',
   'info.multDesc': '牌型增加倍率；激活的 Joker 进一步乘算。',
   'info.domainsAndTags': '领域与标签',
-  'info.domainsDesc': '每个组件属于一个领域（计算、数据、网络、防御、平台），并有 1-3 个标签（cache、db、queue、ha 等）。',
+  'info.domainsDesc': '每个组件属于一个领域（计算、数据、网络、基础设施），并有 1-3 个标签（cache、db、queue、ha 等）。',
   'info.domainsHint': '不同的领域组合和标签组合会触发不同的牌型。',
   'info.patterns': '牌型（3 个层级）',
   'info.patternT1': 'T1 - 领域型：领域对（2 同域）、领域三条（3 同域）、广域（4+ 不同域）。几乎总能触发。',

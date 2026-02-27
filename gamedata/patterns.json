@@ -170,7 +170,7 @@
   {
     "id": "p_diy_full_stack",
     "name": "DIY 全栈",
-    "desc": "[自建] 5 个 domain 各至少 1 张，全自建架构",
+    "desc": "[自建] 4 个 domain 各至少 1 张，全自建架构",
     "requires_all_tags": [],
     "requires_any_tags": [],
     "requires_domain": null,

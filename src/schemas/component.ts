@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const RaritySchema = z.enum(['common', 'uncommon', 'rare']);
 
-export const DomainSchema = z.enum(['compute', 'data', 'network', 'defense', 'platform']);
+export const DomainSchema = z.enum(['compute', 'data', 'network', 'infra']);
 
 export const ComponentPlatformSchema = z.enum(['generic', 'aws', 'gcp', 'azure', 'selfhosted']);
 

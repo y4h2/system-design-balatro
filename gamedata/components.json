@@ -699,7 +699,7 @@
     "id": "cmp_multi_az",
     "name": "Multi-AZ Deploy",
     "desc": "多可用区部署",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "ha"
     ],
@@ -717,7 +717,7 @@
     "id": "cmp_circuit_breaker",
     "name": "Circuit Breaker",
     "desc": "熔断与快速失败",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "ha"
     ],
@@ -735,7 +735,7 @@
     "id": "cmp_health_check",
     "name": "Health Check",
     "desc": "探活与自动摘除",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "ha",
       "monitor"
@@ -754,7 +754,7 @@
     "id": "cmp_failover",
     "name": "Active-Standby Failover",
     "desc": "主备切换",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "ha",
       "replication"
@@ -773,7 +773,7 @@
     "id": "cmp_backup",
     "name": "Backup & Restore",
     "desc": "定期备份与恢复",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "ha",
       "storage"
@@ -792,7 +792,7 @@
     "id": "cmp_dlq",
     "name": "Dead Letter Queue",
     "desc": "死信队列",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "async",
       "ha"
@@ -811,7 +811,7 @@
     "id": "cmp_idempotency",
     "name": "Idempotency Key",
     "desc": "幂等防重",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "security"
     ],
@@ -829,7 +829,7 @@
     "id": "cmp_consistency_checker",
     "name": "Consistency Checker",
     "desc": "数据一致性校验",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "monitor",
       "db"
@@ -848,7 +848,7 @@
     "id": "cmp_dr",
     "name": "Disaster Recovery",
     "desc": "跨地域容灾",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "ha",
       "replication"
@@ -867,7 +867,7 @@
     "id": "cmp_blue_green",
     "name": "Blue-Green Deploy",
     "desc": "蓝绿部署",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "deploy",
       "ha"
@@ -886,7 +886,7 @@
     "id": "cmp_chaos_monkey",
     "name": "Chaos Monkey",
     "desc": "混沌工程",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "ha",
       "monitor"
@@ -905,7 +905,7 @@
     "id": "cmp_canary",
     "name": "Canary Deploy",
     "desc": "金丝雀发布",
-    "domain": "defense",
+    "domain": "infra",
     "tags": [
       "deploy",
       "monitor"
@@ -924,7 +924,7 @@
     "id": "cmp_prometheus",
     "name": "Prometheus",
     "desc": "指标采集与告警",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "monitor"
     ],
@@ -942,7 +942,7 @@
     "id": "cmp_datadog",
     "name": "Datadog",
     "desc": "全栈可观测平台",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "monitor"
     ],
@@ -960,7 +960,7 @@
     "id": "cmp_grafana",
     "name": "Grafana",
     "desc": "可视化监控面板",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "monitor"
     ],
@@ -978,7 +978,7 @@
     "id": "cmp_elk",
     "name": "ELK Stack",
     "desc": "日志聚合分析",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "monitor",
       "search"
@@ -997,7 +997,7 @@
     "id": "cmp_feature_flag",
     "name": "Feature Flag",
     "desc": "功能开关",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "deploy"
     ],
@@ -1015,7 +1015,7 @@
     "id": "cmp_config_center",
     "name": "Config Center",
     "desc": "集中配置管理",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "deploy"
     ],
@@ -1033,7 +1033,7 @@
     "id": "cmp_vault",
     "name": "Vault",
     "desc": "密钥与证书管理",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "security"
     ],
@@ -1051,7 +1051,7 @@
     "id": "cmp_audit_log",
     "name": "Audit Log",
     "desc": "审计日志",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "security",
       "monitor"
@@ -1070,7 +1070,7 @@
     "id": "cmp_encryption",
     "name": "Encryption",
     "desc": "传输/存储加密",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "security"
     ],
@@ -1088,7 +1088,7 @@
     "id": "cmp_argocd",
     "name": "ArgoCD",
     "desc": "GitOps 持续部署",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "deploy"
     ],
@@ -1106,7 +1106,7 @@
     "id": "cmp_terraform",
     "name": "Terraform",
     "desc": "基础设施即代码",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "deploy"
     ],
@@ -1296,7 +1296,7 @@
     "id": "cmp_cloud_monitoring",
     "name": "Cloud Monitoring",
     "desc": "GCP原生监控告警",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "monitor"
     ],
@@ -1485,7 +1485,7 @@
     "id": "cmp_azure_monitor",
     "name": "Azure Monitor",
     "desc": "Azure 原生监控平台",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "monitor"
     ],
@@ -1498,193 +1498,6 @@
     "capacity_cost": 7,
     "rarity": "common",
     "platform": "azure"
-  },
-  {
-    "id": "cmp_bare_metal",
-    "name": "Bare Metal Server",
-    "desc": "物理服务器，极致性能",
-    "domain": "compute",
-    "tags": [
-      "compute"
-    ],
-    "base_chips": 4,
-    "delta": {
-      "perf": 2,
-      "rel": 0,
-      "cx": 0
-    },
-    "capacity_cost": 10,
-    "rarity": "common",
-    "platform": "selfhosted"
-  },
-  {
-    "id": "cmp_nomad",
-    "name": "Nomad",
-    "desc": "HashiCorp 工作负载编排",
-    "domain": "compute",
-    "tags": [
-      "compute",
-      "deploy"
-    ],
-    "base_chips": 4,
-    "delta": {
-      "perf": 1,
-      "rel": 1,
-      "cx": 0
-    },
-    "capacity_cost": 10,
-    "rarity": "uncommon",
-    "platform": "selfhosted"
-  },
-  {
-    "id": "cmp_cockroachdb",
-    "name": "CockroachDB",
-    "desc": "开源分布式 SQL 数据库",
-    "domain": "data",
-    "tags": [
-      "db",
-      "ha",
-      "replication"
-    ],
-    "base_chips": 5,
-    "delta": {
-      "perf": 2,
-      "rel": 2,
-      "cx": 2
-    },
-    "capacity_cost": 18,
-    "rarity": "rare",
-    "platform": "selfhosted"
-  },
-  {
-    "id": "cmp_nats",
-    "name": "NATS",
-    "desc": "轻量高性能消息系统",
-    "domain": "data",
-    "tags": [
-      "queue",
-      "async"
-    ],
-    "base_chips": 3,
-    "delta": {
-      "perf": 2,
-      "rel": 0,
-      "cx": 0
-    },
-    "capacity_cost": 7,
-    "rarity": "common",
-    "platform": "selfhosted"
-  },
-  {
-    "id": "cmp_haproxy",
-    "name": "HAProxy",
-    "desc": "高可用负载均衡代理",
-    "domain": "network",
-    "tags": [
-      "gateway",
-      "ha"
-    ],
-    "base_chips": 4,
-    "delta": {
-      "perf": 1,
-      "rel": 2,
-      "cx": 0
-    },
-    "capacity_cost": 8,
-    "rarity": "common",
-    "platform": "selfhosted"
-  },
-  {
-    "id": "cmp_docker_swarm",
-    "name": "Docker Swarm",
-    "desc": "简易容器编排",
-    "domain": "compute",
-    "tags": [
-      "compute",
-      "deploy"
-    ],
-    "base_chips": 3,
-    "delta": {
-      "perf": 1,
-      "rel": 1,
-      "cx": 1
-    },
-    "capacity_cost": 9,
-    "rarity": "common",
-    "platform": "selfhosted"
-  },
-  {
-    "id": "cmp_minio",
-    "name": "MinIO",
-    "desc": "自建 S3 兼容对象存储",
-    "domain": "data",
-    "tags": [
-      "storage"
-    ],
-    "base_chips": 3,
-    "delta": {
-      "perf": 1,
-      "rel": 1,
-      "cx": 0
-    },
-    "capacity_cost": 7,
-    "rarity": "common",
-    "platform": "selfhosted"
-  },
-  {
-    "id": "cmp_traefik",
-    "name": "Traefik",
-    "desc": "云原生边缘路由",
-    "domain": "network",
-    "tags": [
-      "gateway",
-      "deploy"
-    ],
-    "base_chips": 3,
-    "delta": {
-      "perf": 1,
-      "rel": 1,
-      "cx": 0
-    },
-    "capacity_cost": 7,
-    "rarity": "common",
-    "platform": "selfhosted"
-  },
-  {
-    "id": "cmp_wireguard",
-    "name": "WireGuard",
-    "desc": "现代 VPN 隧道",
-    "domain": "network",
-    "tags": [
-      "security"
-    ],
-    "base_chips": 2,
-    "delta": {
-      "perf": 0,
-      "rel": 1,
-      "cx": 0
-    },
-    "capacity_cost": 5,
-    "rarity": "common",
-    "platform": "selfhosted"
-  },
-  {
-    "id": "cmp_ansible",
-    "name": "Ansible",
-    "desc": "自动化运维与配置管理",
-    "domain": "platform",
-    "tags": [
-      "deploy"
-    ],
-    "base_chips": 3,
-    "delta": {
-      "perf": 0,
-      "rel": 1,
-      "cx": 1
-    },
-    "capacity_cost": 8,
-    "rarity": "uncommon",
-    "platform": "selfhosted"
   },
   {
     "id": "cmp_rpi_cluster",
@@ -1709,7 +1522,7 @@
     "id": "cmp_lxc",
     "name": "LXC/Incus",
     "desc": "系统级容器，万物皆可容器化",
-    "domain": "platform",
+    "domain": "infra",
     "tags": [
       "deploy",
       "wildcard"

@@ -145,15 +145,14 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 
 ## 4. Domain 与 Tag 体系
 
-### 5 个 Domain
+### 4 个 Domain
 
 | Domain | 中文 | 颜色 | 图标 |
 |--------|------|------|------|
 | compute | 计算 | #3b82f6 蓝 | lucide:cpu |
 | data | 数据 | #22c55e 绿 | lucide:database |
 | network | 网络 | #f59e0b 琥珀 | lucide:network |
-| defense | 防御 | #ef4444 红 | lucide:shield |
-| platform | 平台 | #a855f7 紫 | lucide:gauge |
+| infra | 基础设施 | #8b5cf6 紫罗兰 | lucide:server |
 
 ### 常用 Tag
 
@@ -163,7 +162,7 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 
 ## 5. 组件卡 (Components)
 
-共 **92 张**（50 通用 + 10 AWS + 10 GCP + 10 Azure + 12 自建），分布在 5 个 Domain。每张卡有：基础筹码 (base_chips)、面板增量 (delta P/R/CX)、容量成本 (capacity_cost)、标签 (tags)、稀有度。
+共 **82 张**（50 通用 + 10 AWS + 10 GCP + 10 Azure + 2 自建 wildcard），分布在 4 个 Domain。每张卡有：基础筹码 (base_chips)、面板增量 (delta P/R/CX)、容量成本 (capacity_cost)、标签 (tags)、稀有度。
 
 > 每张组件卡有 `platform` 字段：`generic`（通用）、`aws`、`gcp`、`azure` 或 `selfhosted`。每局游戏只包含通用牌 + 所选平台的专属牌。
 
@@ -209,7 +208,7 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 | Istio Service Mesh | gateway, security, monitor | 5 | 0/+2/+2 | 16 | rare |
 | Global Accelerator | edge, ha | 4 | +2/+1/0 | 12 | uncommon |
 
-### 通用组件 — Defense 域 (12 张)
+### 通用组件 — Infra 域 (可靠性) (12 张)
 
 | 名称 | Tags | Chips | P/R/CX | Cap | Rarity |
 |------|------|-------|--------|-----|--------|
@@ -226,7 +225,7 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 | Chaos Monkey | ha, monitor | 3 | 0/+1/+1 | 8 | uncommon |
 | Canary Deploy | deploy, monitor | 3 | 0/+1/0 | 7 | common |
 
-### 通用组件 — Platform 域 (11 张)
+### 通用组件 — Infra 域 (运维) (11 张)
 
 | 名称 | Tags | Chips | P/R/CX | Cap | Rarity |
 |------|------|-------|--------|-----|--------|
@@ -242,7 +241,7 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 | ArgoCD | deploy | 3 | 0/+1/+1 | 9 | uncommon |
 | Terraform | deploy | 3 | 0/+1/+1 | 9 | uncommon |
 
-> **通用合计：8 + 11 + 8 + 12 + 11 = 50 张**
+> **通用合计：8 + 11 + 8 + 23 (infra) = 50 张**
 
 ### AWS 专属组件 (10 张)
 
@@ -289,7 +288,7 @@ Panel.cx   = baseline.cx   + Σ component.delta.cx     (钳制 0–10)
 | Application Gateway | network | gateway, security | 3 | +1/+1/0 | 8 | common |
 | Azure Monitor | platform | monitor | 3 | 0/+1/0 | 7 | common |
 
-### 自建专属组件 (12 张)
+### 自建专属组件 (2 张 wildcard)
 
 | 名称 | Domain | Tags | Chips | P/R/CX | Cap | Rarity |
 |------|--------|------|-------|--------|-----|--------|
@@ -777,7 +776,7 @@ finalScore = totalHandScore + routeMasteryBonus + superPatternBonus - constraint
 
 - 点击左侧卡牌 → 右侧面板展示该卡的数值 + 典故，卡牌边框高亮（ring-2，Domain 颜色）
 - 右侧面板底部有「添加到测试台」按钮（仅 Components Tab），替代当前直接点击添加的行为
-- 未选中任何卡牌时，右侧面板显示当前 Tab 的概览说明（如 "共 90 张组件卡，分布在 5 个 Domain"）
+- 未选中任何卡牌时，右侧面板显示当前 Tab 的概览说明（如 "共 90 张组件卡，分布在 4 个 Domain"）
 - 右侧面板固定宽 360px，内容超出时独立滚动
 
 **各 Tab 右侧面板内容：**
@@ -852,7 +851,7 @@ Balatro 风格扇形弧排列 — 卡牌重叠，cos 曲线纵向偏移 + 旋转
 | AWS | Serverless Full Stack | [compute, async] + [storage] + [gateway] | +8 chips, +2 mult |
 | GCP | 数据湖 | 3+ data domain 组件 | +6 chips, +2 mult |
 | Azure | 企业混合云 | [ha] + [security] + [deploy] | +6 chips, +3 mult |
-| 自建 | DIY 全栈 | 5 个 domain 各至少 1 张 | +10 chips, +2 mult |
+| 自建 | DIY 全栈 | 4 个 domain 各至少 1 张 | +10 chips, +2 mult |
 
 ### 16.6 School × Platform 组合示例
 

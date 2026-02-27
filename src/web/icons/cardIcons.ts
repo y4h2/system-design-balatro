@@ -5,8 +5,7 @@ export const domainIcons: Record<string, string> = {
   compute: 'lucide:cpu',
   data: 'lucide:database',
   network: 'lucide:network',
-  defense: 'lucide:shield',
-  platform: 'lucide:gauge',
+  infra: 'lucide:server',
 };
 
 /** Domain suit colors */
@@ -14,8 +13,7 @@ export const domainColors: Record<string, string> = {
   compute: '#3b82f6',
   data: '#22c55e',
   network: '#f59e0b',
-  defense: '#ef4444',
-  platform: '#a855f7',
+  infra: '#8b5cf6',
 };
 
 /** Brand / tech logo per card ID */
@@ -63,7 +61,7 @@ export const cardIcons: Record<string, string> = {
   cmp_istio: 'devicon:istio',
   cmp_global_accelerator: 'lucide:rocket',
 
-  // ── Defense ──
+  // ── Infra (原 Defense) ──
   cmp_multi_az: 'lucide:server',
   cmp_circuit_breaker: 'lucide:zap-off',
   cmp_health_check: 'lucide:heart-pulse',
@@ -77,7 +75,7 @@ export const cardIcons: Record<string, string> = {
   cmp_chaos_monkey: 'lucide:bug',
   cmp_canary: 'lucide:bird',
 
-  // ── Platform ──
+  // ── Infra (原 Platform) ──
   cmp_prometheus: 'devicon:prometheus',
   cmp_datadog: 'logos:datadog-icon',
   cmp_grafana: 'devicon:grafana',

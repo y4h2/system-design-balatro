@@ -45,8 +45,8 @@ describe('ComponentSchema', () => {
     }
   });
 
-  it('validates all 5 domains', () => {
-    for (const domain of ['compute', 'data', 'network', 'defense', 'platform'] as const) {
+  it('validates all 4 domains', () => {
+    for (const domain of ['compute', 'data', 'network', 'infra'] as const) {
       const result = ComponentSchema.safeParse({ ...validComponent, domain });
       expect(result.success).toBe(true);
     }

@@ -181,7 +181,7 @@ describe('balance', () => {
         comp('cmp_ec2'),       // compute
         comp('cmp_postgresql'), // data
         comp('cmp_nginx'),      // network
-        comp('cmp_multi_az'),   // defense
+        comp('cmp_multi_az'),   // infra
       ]);
 
       const threeDomains = simpleRun([

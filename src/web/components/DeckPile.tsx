@@ -2,7 +2,7 @@ import { t } from '../i18n';
 import DomainSuit from './DomainSuit';
 import { domainColors } from '../icons/cardIcons';
 
-const DOMAINS = ['compute', 'data', 'network', 'defense', 'platform'] as const;
+const DOMAINS = ['compute', 'data', 'network', 'infra'] as const;
 
 interface DeckPileProps {
   count: number;

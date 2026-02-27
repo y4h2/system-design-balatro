@@ -54,7 +54,7 @@ function matchAnyTagDistinct(
  *    - p_domain_triple: any domain with 3+ components
  *    - p_wide_spectrum: 4+ distinct domains
  * 3. Domain requirement: requires_domain with count
- * 4. Special: p_diy_full_stack (5 domains each with 1+ card)
+ * 4. Special: p_diy_full_stack (4 domains each with 1+ card)
  */
 export function detectPatterns(played: Component[], patterns: Pattern[]): Pattern[] {
   // Count components per domain
@@ -69,7 +69,7 @@ export function detectPatterns(played: Component[], patterns: Pattern[]): Patter
   let diyFullStackPattern: Pattern | undefined;
 
   for (const pattern of patterns) {
-    // Special: p_diy_full_stack requires 5 distinct domains
+    // Special: p_diy_full_stack requires 4 distinct domains
     if (pattern.id === 'p_diy_full_stack') {
       diyFullStackPattern = pattern;
       continue;
@@ -116,7 +116,7 @@ export function detectPatterns(played: Component[], patterns: Pattern[]): Patter
   }
 
   // p_diy_full_stack: triggers when 5 distinct domains present
-  if (diyFullStackPattern && distinctDomains >= 5) {
+  if (diyFullStackPattern && distinctDomains >= 4) {
     triggered.push(diyFullStackPattern);
   }
 

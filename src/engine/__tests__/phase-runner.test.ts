@@ -224,7 +224,7 @@ describe('phase-runner', () => {
     });
 
     it('triggers p_wide_spectrum when 4+ distinct domains are present', () => {
-      // EC2 (compute) + PostgreSQL (data) + Nginx (network) + Multi-AZ (defense)
+      // EC2 (compute) + PostgreSQL (data) + Nginx (network) + Multi-AZ (infra)
       const deployed = [
         comp('cmp_ec2'),
         comp('cmp_postgresql'),

@@ -38,7 +38,7 @@ const tabs: { key: Tab; label: string }[] = [
   { key: 'patterns', label: 'collection.tab.patterns' },
 ];
 
-const domains = ['compute', 'data', 'network', 'defense', 'platform'] as const;
+const domains = ['compute', 'data', 'network', 'infra'] as const;
 
 type SelectedItem =
   | { type: 'component'; data: Component }
@@ -460,7 +460,7 @@ function PackStats({ pack }: { pack: PackType }) {
 
 function EmptyDetail({ tab, counts }: { tab: Tab; counts: Record<string, number> }) {
   const hints: Record<Tab, string> = {
-    components: `共 ${counts.components} 张组件卡，分布在 5 个 Domain。点击卡牌查看详情与典故。`,
+    components: `共 ${counts.components} 张组件卡，分布在 4 个 Domain。点击卡牌查看详情与典故。`,
     jokers: `共 ${counts.jokers} 张 Joker，提供跨阶段持久增益。点击卡牌查看详情。`,
     tarots: `共 ${counts.tarots} 张塔罗牌，一次性使用，永久修改目标组件。`,
     packs: `共 ${counts.packs} 种卡包，每种以一本真实技术书命名。`,

@@ -14,15 +14,14 @@ describe('loadGameData', () => {
     expect(data.tarots.length).toBeGreaterThanOrEqual(8);
   });
 
-  it('components include all 5 domains', () => {
+  it('components include all 4 domains', () => {
     const data = loadGameData();
     const domains = new Set(data.components.map(c => c.domain));
-    expect(domains.size).toBe(5);
+    expect(domains.size).toBe(4);
     expect(domains).toContain('compute');
     expect(domains).toContain('data');
     expect(domains).toContain('network');
-    expect(domains).toContain('defense');
-    expect(domains).toContain('platform');
+    expect(domains).toContain('infra');
   });
 
   it('each component has base_chips and domain', () => {

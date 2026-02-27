@@ -146,9 +146,9 @@ export function shouldSuppressOverBudgetPenalty(platform: Platform): boolean {
 }
 
 /**
- * Check if DIY Full Stack pattern should trigger (5 domains each with at least 1 card).
+ * Check if DIY Full Stack pattern should trigger (4 domains each with at least 1 card).
  */
 export function checkDiyFullStack(deployed: Component[]): boolean {
   const domains = new Set(deployed.map(c => c.domain));
-  return domains.size >= 5;
+  return domains.size >= 4;
 }

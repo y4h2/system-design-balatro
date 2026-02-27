@@ -187,11 +187,11 @@ describe('applyTarot — change_domain', () => {
 
   it('wildcard from_domain matches any domain', () => {
     const wildTarot = makeTarot({
-      effect: { type: 'change_domain', from_domain: '*', to_domain: 'defense' },
+      effect: { type: 'change_domain', from_domain: '*', to_domain: 'infra' },
     });
     const comp = makeComponent({ domain: 'data' });
     const result = applyTarot(wildTarot, comp);
-    expect(result.domain).toBe('defense');
+    expect(result.domain).toBe('infra');
   });
 
   it('wildcard to_domain does not change domain', () => {
@@ -229,9 +229,9 @@ describe('canApplyTarot — change_domain', () => {
 
   it('returns true with wildcard from_domain', () => {
     const wildTarot = makeTarot({
-      effect: { type: 'change_domain', from_domain: '*', to_domain: 'defense' },
+      effect: { type: 'change_domain', from_domain: '*', to_domain: 'infra' },
     });
-    const comp = makeComponent({ domain: 'platform' });
+    const comp = makeComponent({ domain: 'infra' });
     expect(canApplyTarot(wildTarot, comp)).toBe(true);
   });
 });

@@ -369,7 +369,7 @@ describe('detectPatterns – domain-based', () => {
       makeComponent({ domain: 'compute' }),
       makeComponent({ domain: 'data' }),
       makeComponent({ domain: 'network' }),
-      makeComponent({ domain: 'defense' }),
+      makeComponent({ domain: 'infra' }),
     ];
     const result = detectPatterns(played, [wideSpectrumPattern]);
     expect(result.some(p => p.id === 'p_wide_spectrum')).toBe(true);
